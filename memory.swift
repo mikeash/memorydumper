@@ -127,6 +127,16 @@ func pad(value: Any, minWidth: Int, padChar: String = " ", align: Alignment = .R
     return accumulator
 }
 
+func limit(str: String, maxLength: Int, continuation: String = "...") -> String {
+    if countElements(str) <= maxLength {
+        return str
+    }
+    
+    let start = str.startIndex
+    let truncationPoint = advance(start, maxLength)
+    return str[start..truncationPoint] + continuation
+}
+
 enum Term: String {
     case Default = "39"
     case Red = "31"
@@ -236,7 +246,7 @@ func dumpmem<T>(var x: T) {
                 print("\(memory.buffer.count) bytes ")
                 print(memory.isMalloc ? "<malloc> " : "<unknwn> ")
                 
-                print(memory.hex())
+                print(limit(memory.hex(), 64))
 //                if pointers.count > 0 {
 //                    print(" ")
 //                    print(pointers.map{ formatPointer($0) })
