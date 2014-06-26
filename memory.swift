@@ -127,6 +127,19 @@ func pad(value: Any, minWidth: Int, padChar: String = " ", align: Alignment = .R
     return accumulator
 }
 
+enum Term: String {
+    case Default = "39"
+    case Red = "31"
+    
+    func escapeSequence() -> String {
+        return "\x1B[\(self.toRaw())m"
+    }
+    
+    func wrap(contents: String) -> String {
+        return "\(escapeSequence())\(contents)\(Default.escapeSequence())"
+    }
+}
+
 class ScanEntry {
     let parent: ScanEntry?
     var parentOffset: Int
@@ -192,9 +205,7 @@ func dumpmem<T>(var x: T) {
                 count++
                 if let parent = entry.parent {
                     print("(")
-                    print(pad(parent.index, 3))
-                    print(", \(formatPointer(parent.address))@")
-                    print(pad(entry.parentOffset, 3, align: .Left))
+                    print(Term.Red.wrap("\(pad(parent.index, 3)), \(formatPointer(parent.address))@\(pad(entry.parentOffset, 3, align: .Left))"))
                     print(") <- ")
                 } else {
                     print("                                 ")
