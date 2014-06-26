@@ -50,6 +50,33 @@ struct Memory {
         return pointers
     }
     
+    func scanStrings() -> String[] {
+        let lowerBound: UInt8 = 32
+        let upperBound: UInt8 = 126
+        
+        var current = UInt8[]()
+        var strings = String[]()
+        func reset() {
+            if current.count >= 4 {
+                let str = NSMutableString(capacity: current.count)
+                for byte in current {
+                    str.appendFormat("%c", byte)
+                }
+                strings.append(str)
+            }
+            current.removeAll()
+        }
+        for byte in buffer {
+            if byte >= lowerBound && byte <= upperBound {
+                current.append(byte)
+            } else {
+                reset()
+            }
+        }
+        reset()
+        
+        return strings
+    }
 }
 
 func formatPointer(ptr: UInt) -> String {
@@ -72,34 +99,6 @@ func printmem(mem: UInt8[]) {
 struct PointerAndOffset {
     let pointer: UInt
     let offset: Int
-}
-
-func scanStrings(mem: UInt8[]) -> String[] {
-    let lowerBound: UInt8 = 32
-    let upperBound: UInt8 = 126
-    
-    var current = UInt8[]()
-    var strings = String[]()
-    func reset() {
-        if current.count >= 4 {
-            let str = NSMutableString(capacity: current.count)
-            for byte in current {
-                str.appendFormat("%c", byte)
-            }
-            strings.append(str)
-        }
-        current.removeAll()
-    }
-    for byte in mem {
-        if byte >= lowerBound && byte <= upperBound {
-            current.append(byte)
-        } else {
-            reset()
-        }
-    }
-    reset()
-    
-    return strings
 }
 
 func printInt(x: Int, digits: Int, rightAlign: Bool = true) {
@@ -220,7 +219,7 @@ func dumpmem<T>(var x: T) {
                     print(" ObjC class \(objCClass.name)")
                 }
                 
-                let strings = scanStrings(memory.buffer)
+                let strings = memory.scanStrings()
                 if strings.count > 0 {
                     print(" -- strings: (")
                     print(", ".join(strings))
