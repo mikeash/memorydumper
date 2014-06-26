@@ -247,10 +247,6 @@ func dumpmem<T>(var x: T) {
                 print(memory.isMalloc ? "<malloc> " : "<unknwn> ")
                 
                 print(limit(memory.hex(), 64))
-//                if pointers.count > 0 {
-//                    print(" ")
-//                    print(pointers.map{ formatPointer($0) })
-//                }
                 
                 if let objCClass = classMap[entry.address] {
                     print(" ObjC class \(objCClass.name)")
