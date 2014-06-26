@@ -101,21 +101,30 @@ struct PointerAndOffset {
     let offset: Int
 }
 
-func printInt(x: Int, digits: Int, rightAlign: Bool = true) {
-    let str = "\(x)"
-    if !rightAlign {
-        print(str)
+enum Alignment {
+    case Right
+    case Left
+}
+
+func pad(value: Any, minWidth: Int, padChar: String = " ", align: Alignment = .Right) -> String {
+    var str = "\(value)"
+    var accumulator = ""
+    
+    if align == .Left {
+        accumulator += str
     }
     
-    if digits > countElements(str) {
-        for i in 0..(digits - countElements(str)) {
-            print(" ")
+    if minWidth > countElements(str) {
+        for i in 0..(minWidth - countElements(str)) {
+            accumulator += padChar
         }
     }
     
-    if rightAlign {
-        print(str)
+    if align == .Right {
+        accumulator += str
     }
+    
+    return accumulator
 }
 
 class ScanEntry {
@@ -183,15 +192,15 @@ func dumpmem<T>(var x: T) {
                 count++
                 if let parent = entry.parent {
                     print("(")
-                    printInt(parent.index, 3)
+                    print(pad(parent.index, 3))
                     print(", \(formatPointer(parent.address))@")
-                    printInt(entry.parentOffset, 3, rightAlign: false)
+                    print(pad(entry.parentOffset, 3, align: .Left))
                     print(") <- ")
                 } else {
                     print("                                 ")
                 }
                 
-                printInt(entry.index, 3)
+                print(pad(entry.index, 3))
                 print(" ")
                 print(formatPointer(entry.address))
                 print(": ")
