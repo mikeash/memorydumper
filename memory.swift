@@ -89,8 +89,12 @@ func formatPointer(ptr: UInt) -> String {
 
 
 func hexFromArray(mem: UInt8[]) -> String {
+    let spacesInterval = 8
     let str = NSMutableString(capacity: mem.count * 2)
-    for byte in mem {
+    for (index, byte) in enumerate(mem) {
+        if index > 0 && (index % spacesInterval) == 0 {
+            str.appendString(" ")
+        }
         str.appendFormat("%02x", byte)
     }
     return str
@@ -246,7 +250,7 @@ func dumpmem<T>(var x: T) {
                 print("\(pad(memory.buffer.count, 5)) bytes ")
                 print(memory.isMalloc ? "<malloc> " : "<unknwn> ")
                 
-                print(limit(memory.hex(), 64))
+                print(limit(memory.hex(), 67))
                 
                 if let objCClass = classMap[entry.address] {
                     print(" ObjC class \(objCClass.name)")
