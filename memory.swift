@@ -35,6 +35,21 @@ struct Memory {
             ? Memory(buffer: result, isMalloc: isMalloc)
             : nil)
     }
+    
+    func scanPointers() -> PointerAndOffset[] {
+        var pointers = PointerAndOffset[]()
+        buffer.withUnsafePointerToElements {
+            (memPtr: UnsafePointer<UInt8>) -> Void in
+            
+            let ptrptr: UnsafePointer<UInt> = reinterpretCast(memPtr)
+            let count = self.buffer.count / 8
+            for i in 0..count {
+                pointers.append(PointerAndOffset(pointer: ptrptr[i], offset: i * 8))
+            }
+        }
+        return pointers
+    }
+    
 }
 
 func formatPointer(ptr: UInt) -> String {
@@ -57,20 +72,6 @@ func printmem(mem: UInt8[]) {
 struct PointerAndOffset {
     let pointer: UInt
     let offset: Int
-}
-
-func scanPointers(mem: UInt8[]) -> PointerAndOffset[] {
-    var pointers = PointerAndOffset[]()
-    mem.withUnsafePointerToElements {
-        (memPtr: UnsafePointer<UInt8>) -> Void in
-        
-        let ptrptr: UnsafePointer<UInt> = reinterpretCast(memPtr)
-        let count = mem.count / 8
-        for i in 0..count {
-            pointers.append(PointerAndOffset(pointer: ptrptr[i], offset: i * 8))
-        }
-    }
-    return pointers
 }
 
 func scanStrings(mem: UInt8[]) -> String[] {
@@ -195,7 +196,7 @@ func dumpmem<T>(var x: T) {
                 print(" ")
                 print(formatPointer(entry.address))
                 print(": ")
-                let pointersAndOffsets = scanPointers(memory.buffer)
+                let pointersAndOffsets = memory.scanPointers()
                 for pointerAndOffset in pointersAndOffsets {
                     let pointer = pointerAndOffset.pointer
                     let offset = pointerAndOffset.offset
