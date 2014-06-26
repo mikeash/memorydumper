@@ -3,37 +3,44 @@
 import Foundation
 import Darwin
 
+
+struct Memory {
+    let buffer: UInt8[]
+    let isMalloc: Bool
+    
+    static func readIntoArray(ptr: UInt, var _ buffer: UInt8[]) -> Bool {
+        let result = buffer.withUnsafePointerToElements {
+            (targetPtr: UnsafePointer<UInt8>) -> kern_return_t in
+            
+            let ptr64 = UInt64(ptr)
+            let target: UInt = reinterpretCast(targetPtr)
+            let target64 = UInt64(target)
+            var outsize: mach_vm_size_t = 0
+            return mach_vm_read_overwrite(mach_task_self_, ptr64, mach_vm_size_t(buffer.count), target64, &outsize)
+        }
+        return result == KERN_SUCCESS
+    }
+    
+    static func read(ptr: UInt) -> Memory? {
+        let convertedPtr: UnsafePointer<Int> = reinterpretCast(ptr)
+        var length = Int(malloc_size(convertedPtr))
+        let isMalloc = length > 0
+        if length == 0 {
+            length = 64
+        }
+        
+        var result = UInt8[](count: length, repeatedValue: 0)
+        let success = readIntoArray(ptr, result)
+        return (success
+            ? Memory(buffer: result, isMalloc: isMalloc)
+            : nil)
+    }
+}
+
 func formatPointer(ptr: UInt) -> String {
     return NSString(format: "0x%016llx", ptr)
 }
 
-func readIntoArray(ptr: UInt, var buffer: UInt8[]) -> Bool {
-    let result = buffer.withUnsafePointerToElements {
-        (targetPtr: UnsafePointer<UInt8>) -> kern_return_t in
-        
-        let ptr64 = UInt64(ptr)
-        let target: UInt = reinterpretCast(targetPtr)
-        let target64 = UInt64(target)
-        var outsize: mach_vm_size_t = 0
-        return mach_vm_read_overwrite(mach_task_self_, ptr64, mach_vm_size_t(buffer.count), target64, &outsize)
-    }
-    return result == KERN_SUCCESS
-}
-
-func read(ptr: UInt) -> (UInt8[]?, Bool) {
-    let convertedPtr: UnsafePointer<Int> = reinterpretCast(ptr)
-    var length = Int(malloc_size(convertedPtr))
-    let isMalloc = length > 0
-    if length == 0 {
-        length = 64
-    }
-    
-    var result = UInt8[](count: length, repeatedValue: 0)
-    let success = readIntoArray(ptr, result)
-    return (success
-        ? (result, isMalloc)
-        : (nil, false))
-}
 
 func hex(mem: UInt8[]) -> String {
     let str = NSMutableString(capacity: mem.count * 2)
@@ -170,9 +177,9 @@ func dumpmem<T>(var x: T) {
             let entry = toScan.removeLast()
             entry.index = count
             
-            let (mem, isMalloc) = read(entry.address)
+            let memory: Memory! = Memory.read(entry.address)
             
-            if mem {
+            if memory {
                 count++
                 if let parent = entry.parent {
                     print("(")
@@ -188,7 +195,7 @@ func dumpmem<T>(var x: T) {
                 print(" ")
                 print(formatPointer(entry.address))
                 print(": ")
-                let pointersAndOffsets = scanPointers(mem!)
+                let pointersAndOffsets = scanPointers(memory.buffer)
                 for pointerAndOffset in pointersAndOffsets {
                     let pointer = pointerAndOffset.pointer
                     let offset = pointerAndOffset.offset
@@ -199,10 +206,10 @@ func dumpmem<T>(var x: T) {
                     }
                 }
                 
-                print("\(mem!.count) bytes ")
-                print(isMalloc ? "<malloc> " : "<unknwn> ")
+                print("\(memory.buffer.count) bytes ")
+                print(memory.isMalloc ? "<malloc> " : "<unknwn> ")
                 
-                printmem(mem!)
+                printmem(memory.buffer)
 //                if pointers.count > 0 {
 //                    print(" ")
 //                    print(pointers.map{ formatPointer($0) })
@@ -212,7 +219,7 @@ func dumpmem<T>(var x: T) {
                     print(" ObjC class \(objCClass.name)")
                 }
                 
-                let strings = scanStrings(mem!)
+                let strings = scanStrings(memory.buffer)
                 if strings.count > 0 {
                     print(" -- strings: (")
                     print(", ".join(strings))
