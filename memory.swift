@@ -77,6 +77,10 @@ struct Memory {
         
         return strings
     }
+    
+    func hex() -> String {
+        return hexFromArray(buffer)
+    }
 }
 
 func formatPointer(ptr: UInt) -> String {
@@ -84,16 +88,12 @@ func formatPointer(ptr: UInt) -> String {
 }
 
 
-func hex(mem: UInt8[]) -> String {
+func hexFromArray(mem: UInt8[]) -> String {
     let str = NSMutableString(capacity: mem.count * 2)
     for byte in mem {
         str.appendFormat("%02x", byte)
     }
     return str
-}
-
-func printmem(mem: UInt8[]) {
-    print(hex(mem))
 }
 
 struct PointerAndOffset {
@@ -209,7 +209,7 @@ func dumpmem<T>(var x: T) {
                 print("\(memory.buffer.count) bytes ")
                 print(memory.isMalloc ? "<malloc> " : "<unknwn> ")
                 
-                printmem(memory.buffer)
+                print(memory.hex())
 //                if pointers.count > 0 {
 //                    print(" ")
 //                    print(pointers.map{ formatPointer($0) })
