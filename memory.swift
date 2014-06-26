@@ -21,12 +21,16 @@ struct Memory {
         return result == KERN_SUCCESS
     }
     
-    static func read(ptr: UInt) -> Memory? {
+    static func read(ptr: UInt, knownSize: Int? = nil) -> Memory? {
         let convertedPtr: UnsafePointer<Int> = reinterpretCast(ptr)
         var length = Int(malloc_size(convertedPtr))
         let isMalloc = length > 0
         if length == 0 {
             length = 64
+        }
+        
+        if knownSize {
+            length = knownSize!
         }
         
         var result = UInt8[](count: length, repeatedValue: 0)
@@ -222,7 +226,7 @@ func dumpmem<T>(var x: T) {
             let entry = toScan.removeLast()
             entry.index = count
             
-            let memory: Memory! = Memory.read(entry.address)
+            let memory: Memory! = Memory.read(entry.address, knownSize: count == 0 ? sizeof(T.self) : nil)
             
             if memory {
                 count++
