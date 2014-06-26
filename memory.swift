@@ -130,6 +130,11 @@ func pad(value: Any, minWidth: Int, padChar: String = " ", align: Alignment = .R
 enum Term: String {
     case Default = "39"
     case Red = "31"
+    case Green = "32"
+    case Yellow = "33"
+    case Blue = "34"
+    case Magenta = "35"
+    case Cyan = "36"
     
     func escapeSequence() -> String {
         return "\x1B[\(self.toRaw())m"
@@ -182,6 +187,10 @@ for c in AllClasses() { classMap[c.address] = c }
 //}
 
 func dumpmem<T>(var x: T) {
+    func entryColor(entry: ScanEntry) -> Term {
+        let entryColors: Term[] = [ .Red, .Green, .Yellow, .Blue, .Magenta, .Cyan ]
+        return entryColors[entry.index % entryColors.count]
+    }
     
     var count = 0
     var seen = Dictionary<UInt, Bool>()
@@ -205,15 +214,13 @@ func dumpmem<T>(var x: T) {
                 count++
                 if let parent = entry.parent {
                     print("(")
-                    print(Term.Red.wrap("\(pad(parent.index, 3)), \(formatPointer(parent.address))@\(pad(entry.parentOffset, 3, align: .Left))"))
+                    print(entryColor(parent).wrap("\(pad(parent.index, 3)), \(formatPointer(parent.address))@\(pad(entry.parentOffset, 3, align: .Left))"))
                     print(") <- ")
                 } else {
                     print("                                 ")
                 }
                 
-                print(pad(entry.index, 3))
-                print(" ")
-                print(formatPointer(entry.address))
+                print(entryColor(entry).wrap("\(pad(entry.index, 3)) \(formatPointer(entry.address))"))
                 print(": ")
                 let pointersAndOffsets = memory.scanPointers()
                 for pointerAndOffset in pointersAndOffsets {
