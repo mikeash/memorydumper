@@ -243,7 +243,7 @@ func dumpmem<T>(var x: T) {
                     }
                 }
                 
-                print("\(memory.buffer.count) bytes ")
+                print("\(pad(memory.buffer.count, 5)) bytes ")
                 print(memory.isMalloc ? "<malloc> " : "<unknwn> ")
                 
                 print(limit(memory.hex(), 64))
