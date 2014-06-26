@@ -84,7 +84,7 @@ struct Memory {
 }
 
 func formatPointer(ptr: UInt) -> String {
-    return NSString(format: "0x%016llx", ptr)
+    return NSString(format: "0x%0*llx", sizeof(UInt.self) * 2, ptr)
 }
 
 
