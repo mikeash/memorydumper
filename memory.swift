@@ -7,18 +7,17 @@ func formatPointer(ptr: UInt) -> String {
     return NSString(format: "0x%016llx", ptr)
 }
 
-func readOneByte(ptr: UInt) -> UInt8? {
-    var target: UInt8 = 0
-    let result = withUnsafePointer(&target) {
+func readIntoArray(ptr: UInt, var buffer: UInt8[]) -> Bool {
+    let result = buffer.withUnsafePointerToElements {
         (targetPtr: UnsafePointer<UInt8>) -> kern_return_t in
         
         let ptr64 = UInt64(ptr)
         let target: UInt = reinterpretCast(targetPtr)
         let target64 = UInt64(target)
         var outsize: mach_vm_size_t = 0
-        return mach_vm_read_overwrite(mach_task_self_, ptr64, 1, target64, &outsize)
+        return mach_vm_read_overwrite(mach_task_self_, ptr64, mach_vm_size_t(buffer.count), target64, &outsize)
     }
-    return (result == 0 ? target : nil)
+    return result == KERN_SUCCESS
 }
 
 func read(ptr: UInt) -> (UInt8[]?, Bool) {
@@ -30,15 +29,10 @@ func read(ptr: UInt) -> (UInt8[]?, Bool) {
     }
     
     var result = UInt8[](count: length, repeatedValue: 0)
-    for i in 0..length {
-        let byte = readOneByte(ptr + UInt(i))
-        if byte {
-            result[i] = byte!
-        } else {
-            return (nil, false)
-        }
-    }
-    return (result, isMalloc)
+    let success = readIntoArray(ptr, result)
+    return (success
+        ? (result, isMalloc)
+        : (nil, false))
 }
 
 func hex(mem: UInt8[]) -> String {
