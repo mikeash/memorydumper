@@ -204,18 +204,74 @@ for c in AllClasses() { classMap[c.address] = c }
 //    println("\(formatPointer(addr)) \(objCClass.name)")
 //}
 
-func dumpmem<T>(var x: T) {
+class ScanResult {
+    let entry: ScanEntry
+    let parent: ScanResult?
+    let memory: Memory
+    var children = ScanResult[]()
+    
+    init(entry: ScanEntry, parent: ScanResult?, memory: Memory) {
+        self.entry = entry
+        self.parent = parent
+        self.memory = memory
+    }
+    
     func entryColor(entry: ScanEntry) -> Term {
         let entryColors: Term[] = [ .Red, .Green, .Yellow, .Blue, .Magenta, .Cyan ]
         return entryColors[entry.index % entryColors.count]
     }
     
+    func dump() {
+        if let parent = entry.parent {
+            print("(")
+            print(entryColor(parent).wrap("\(pad(parent.index, 3)), \(formatPointer(parent.address))@\(pad(entry.parentOffset, 3, align: .Left))"))
+            print(") <- ")
+        } else {
+            print("                                 ")
+        }
+        
+        print(entryColor(entry).wrap("\(pad(entry.index, 3)) \(formatPointer(entry.address))"))
+        print(": ")
+        
+        print("\(pad(memory.buffer.count, 5)) bytes ")
+        print(memory.isMalloc ? "<malloc> " : "<unknwn> ")
+        
+        print(limit(memory.hex(), 67))
+        
+        if let objCClass = classMap[entry.address] {
+            print(" ObjC class \(objCClass.name)")
+        }
+        
+        let strings = memory.scanStrings()
+        if strings.count > 0 {
+            print(" -- strings: (")
+            print(", ".join(strings))
+            print(")")
+        }
+        println()
+    }
+    
+    func recursiveDump() {
+        var chain = [self]
+        while chain.count > 0 {
+            let result = chain.removeLast()
+            result.dump()
+            for child in result.children {
+                chain.append(child)
+            }
+        }
+    }
+}
+
+func dumpmem<T>(var x: T) -> ScanResult {
     var count = 0
     var seen = Dictionary<UInt, Bool>()
     var toScan = Array<ScanEntry>()
     
-    withUnsafePointer(&x) {
-        (ptr: UnsafePointer<T>) -> Void in
+    var results = Dictionary<UInt, ScanResult>()
+    
+    return withUnsafePointer(&x) {
+        (ptr: UnsafePointer<T>) -> ScanResult in
         
         let firstAddr: UInt = reinterpretCast(ptr)
         let firstEntry = ScanEntry(parent: nil, parentOffset: 0, address: firstAddr, index: 0)
@@ -230,16 +286,11 @@ func dumpmem<T>(var x: T) {
             
             if memory {
                 count++
-                if let parent = entry.parent {
-                    print("(")
-                    print(entryColor(parent).wrap("\(pad(parent.index, 3)), \(formatPointer(parent.address))@\(pad(entry.parentOffset, 3, align: .Left))"))
-                    print(") <- ")
-                } else {
-                    print("                                 ")
-                }
+                let parent = entry.parent.map{ results[$0.address] }?
+                let result = ScanResult(entry: entry, parent: parent, memory: memory)
+                parent?.children.append(result)
+                results[entry.address] = result
                 
-                print(entryColor(entry).wrap("\(pad(entry.index, 3)) \(formatPointer(entry.address))"))
-                print(": ")
                 let pointersAndOffsets = memory.scanPointers()
                 for pointerAndOffset in pointersAndOffsets {
                     let pointer = pointerAndOffset.pointer
@@ -250,27 +301,10 @@ func dumpmem<T>(var x: T) {
                         toScan.insert(newEntry, atIndex: 0)
                     }
                 }
-                
-                print("\(pad(memory.buffer.count, 5)) bytes ")
-                print(memory.isMalloc ? "<malloc> " : "<unknwn> ")
-                
-                print(limit(memory.hex(), 67))
-                
-                if let objCClass = classMap[entry.address] {
-                    print(" ObjC class \(objCClass.name)")
-                }
-                
-                let strings = memory.scanStrings()
-                if strings.count > 0 {
-                    print(" -- strings: (")
-                    print(", ".join(strings))
-                    print(")")
-                }
-                println()
             }
         }
+        return results[firstAddr]!
     }
-    println("==========")
 }
 
 
@@ -279,5 +313,6 @@ func dumpmem<T>(var x: T) {
 //println(obj.description)
 class TestClass {}
 let obj = TestClass()
-dumpmem(obj)
+let result = dumpmem(obj)
+result.recursiveDump()
 
