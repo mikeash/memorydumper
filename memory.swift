@@ -209,6 +209,7 @@ class ScanResult {
     let parent: ScanResult?
     let memory: Memory
     var children = ScanResult[]()
+    var indent = 0
     
     init(entry: ScanEntry, parent: ScanResult?, memory: Memory) {
         self.entry = entry
@@ -255,8 +256,12 @@ class ScanResult {
         var chain = [self]
         while chain.count > 0 {
             let result = chain.removeLast()
+            for i in 0..result.indent {
+                print("  ")
+            }
             result.dump()
             for child in result.children {
+                child.indent = result.indent + 1
                 chain.append(child)
             }
         }
