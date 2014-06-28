@@ -210,6 +210,7 @@ class ScanResult {
     let memory: Memory
     var children = ScanResult[]()
     var indent = 0
+    var color: Term = .Default
     
     init(entry: ScanEntry, parent: ScanResult?, memory: Memory) {
         self.entry = entry
@@ -217,21 +218,16 @@ class ScanResult {
         self.memory = memory
     }
     
-    func entryColor(entry: ScanEntry) -> Term {
-        let entryColors: Term[] = [ .Red, .Green, .Yellow, .Blue, .Magenta, .Cyan ]
-        return entryColors[entry.index % entryColors.count]
-    }
-    
     func dump() {
         if let parent = entry.parent {
             print("(")
-            print(entryColor(parent).wrap("\(pad(parent.index, 3)), \(formatPointer(parent.address))@\(pad(entry.parentOffset, 3, align: .Left))"))
+            print(self.parent!.color.wrap("\(pad(parent.index, 3)), \(formatPointer(parent.address))@\(pad(entry.parentOffset, 3, align: .Left))"))
             print(") <- ")
         } else {
             print("                                 ")
         }
         
-        print(entryColor(entry).wrap("\(pad(entry.index, 3)) \(formatPointer(entry.address))"))
+        print(color.wrap("\(pad(entry.index, 3)) \(formatPointer(entry.address))"))
         print(": ")
         
         print("\(pad(memory.buffer.count, 5)) bytes ")
@@ -253,9 +249,20 @@ class ScanResult {
     }
     
     func recursiveDump() {
+        var entryColorIndex = 0
+        let entryColors: Term[] = [ .Red, .Green, .Yellow, .Blue, .Magenta, .Cyan ]
+        func nextColor() -> Term {
+            return entryColors[entryColorIndex++ % entryColors.count]
+        }
+        
         var chain = [self]
         while chain.count > 0 {
             let result = chain.removeLast()
+            
+            if result.children.count > 0 {
+                result.color = nextColor()
+            }
+            
             for i in 0..result.indent {
                 print("  ")
             }
