@@ -219,16 +219,24 @@ class ScanResult {
     }
     
     var name: String {
+        if let c = classMap[entry.address] {
+            return c.name
+        }
+        
+        let pointers = memory.scanPointers()
+        if pointers.count > 0 {
+            if let c = classMap[pointers[0].pointer] {
+                return "<\(c.name): \(formatPointer(entry.address))>"
+            }
+        }
         return formatPointer(entry.address)
     }
     
     func dump() {
         if let parent = entry.parent {
             print("(")
-            print(self.parent!.color.wrap("\(pad(parent.index, 3)), \(self.parent!.name)@\(pad(entry.parentOffset, 3, align: .Left))"))
+            print(self.parent!.color.wrap("\(pad(parent.index, 3)), \(pad(self.parent!.name, 24))@\(pad(entry.parentOffset, 3, align: .Left))"))
             print(") <- ")
-        } else {
-            print("                                 ")
         }
         
         print(color.wrap("\(pad(entry.index, 3)) \(formatPointer(entry.address))"))
