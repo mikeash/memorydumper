@@ -218,10 +218,14 @@ class ScanResult {
         self.memory = memory
     }
     
+    var name: String {
+        return formatPointer(entry.address)
+    }
+    
     func dump() {
         if let parent = entry.parent {
             print("(")
-            print(self.parent!.color.wrap("\(pad(parent.index, 3)), \(formatPointer(parent.address))@\(pad(entry.parentOffset, 3, align: .Left))"))
+            print(self.parent!.color.wrap("\(pad(parent.index, 3)), \(self.parent!.name)@\(pad(entry.parentOffset, 3, align: .Left))"))
             print(") <- ")
         } else {
             print("                                 ")
