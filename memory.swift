@@ -335,7 +335,7 @@ class ScanResult {
     }
 }
 
-func dumpmem<T>(var x: T) -> ScanResult {
+func dumpmem<T>(var x: T, limit: Int) -> ScanResult {
     var count = 0
     var seen = Dictionary<Pointer, Bool>()
     var toScan = Array<ScanEntry>()
@@ -350,7 +350,7 @@ func dumpmem<T>(var x: T) -> ScanResult {
         seen[firstAddr] = true
         toScan.append(firstEntry)
         
-        while toScan.count > 0 && count < 150 {
+        while toScan.count > 0 && count < limit {
             let entry = toScan.removeLast()
             entry.index = count
             
@@ -385,6 +385,6 @@ func dumpmem<T>(var x: T) -> ScanResult {
 //println(obj.description)
 class TestClass {}
 let obj = TestClass()
-let result = dumpmem(obj)
+let result = dumpmem(obj, 150)
 result.recursiveDump()
 
