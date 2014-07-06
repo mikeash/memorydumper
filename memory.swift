@@ -283,13 +283,12 @@ class ScanResult {
             print(") <- ")
         }
         
-        print(color.wrap("\(pad(entry.index, 3)) \(entry.address.description)"))
-        print(": ")
+        print(color.wrap("\(pad(entry.index, 3)) \(entry.address.description): "))
         
-        print("\(pad(memory.buffer.count, 5)) bytes ")
-        print(memory.isMalloc ? "<malloc> " : "<unknwn> ")
+        print(color.wrap("\(pad(memory.buffer.count, 5)) bytes "))
+        print(color.wrap(memory.isMalloc ? "<malloc> " : "<unknwn> "))
         
-        print(limit(memory.hex(), 67))
+        print(color.wrap(limit(memory.hex(), 67)))
         
         if let symbolName = entry.address.symbolName() {
             print(" Symbol \(symbolName)")
