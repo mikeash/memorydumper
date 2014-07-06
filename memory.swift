@@ -31,6 +31,7 @@ protocol Printer {
     func print(color: PrintColor, _ str: String)
     func print(str: String)
     func println()
+    func end()
 }
 
 class TermPrinter: Printer {
@@ -60,6 +61,63 @@ class TermPrinter: Printer {
     
     func println() {
         Swift.println()
+    }
+    
+    func end() {}
+}
+
+class HTMLPrinter: Printer {
+    let colorNames: Dictionary<PrintColor, String> = [
+        .Default: "black",
+        .Red: "darkred",
+        .Green: "green",
+        .Yellow: "gold",
+        .Blue: "darkblue",
+        .Magenta: "darkmagenta",
+        .Cyan: "darkcyan"
+    ]
+    
+    var didEnd = false
+    
+    init() {
+        Swift.println("<div style=\"font-family: monospace\">")
+    }
+    
+    deinit {
+        assert(didEnd, "Must end printer before destroying it")
+    }
+    
+    func escape(str: String) -> String {
+        let mutable = NSMutableString(string: str)
+        func replace(str: String, with: String) {
+            mutable.replaceOccurrencesOfString(str, withString: with, options: NSStringCompareOptions(0), range: NSRange(location: 0, length: mutable.length()))
+        }
+        
+        replace("&", "&amp;")
+        replace("<", "&lt;")
+        replace(">", "&gt;")
+        replace("  ", "&nbsp; ")
+        
+        return mutable
+    }
+    
+    func print(color: PrintColor, _ str: String) {
+        Swift.print("<span style=\"color: \(colorNames[color])\">")
+        Swift.print(escape(str))
+        Swift.print("</span>")
+    }
+    
+    func print(str: String) {
+        print(.Default, str)
+    }
+    
+    func println() {
+        Swift.println("<br>")
+    }
+    
+    func end() {
+        Swift.println("</div>")
+        didEnd = true
     }
 }
 
@@ -310,6 +368,8 @@ class ScanResult {
             p.print("(")
             p.print(self.parent!.color, "\(pad(parent.index, 3)), \(pad(self.parent!.name, 24))@\(pad(entry.parentOffset, 3, align: .Left))")
             p.print(") <- ")
+        } else {
+            p.print("Starting pointer: ")
         }
         
         p.print(color, "\(pad(entry.index, 3)) \(entry.address.description): ")
@@ -414,5 +474,7 @@ func dumpmem<T>(var x: T, limit: Int) -> ScanResult {
 class TestClass {}
 let obj = TestClass()
 let result = dumpmem(obj, 150)
-result.recursiveDump(TermPrinter())
+let printer = HTMLPrinter()
+result.recursiveDump(printer)
+printer.end()
 
