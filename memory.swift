@@ -1,4 +1,17 @@
-#!/Applications/Xcode6-Beta.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swift -i -sdk /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.9.sdk
+/*/../usr/bin/true
+
+source="$0"
+compiled="$0"c
+
+if [[ "$source" -nt "$compiled" ]]; then
+DEVELOPER_DIR=/Applications/Xcode6-Beta.app/Contents/Developer xcrun swift -sdk /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.9.sdk -g "$source" -o "$compiled"  || exit
+fi
+
+"$compiled"
+
+exit
+*/
+
 
 import Foundation
 import Darwin
