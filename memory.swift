@@ -16,6 +16,53 @@ exit
 import Foundation
 import Darwin
 
+
+enum PrintColor {
+    case Default
+    case Red
+    case Green
+    case Yellow
+    case Blue
+    case Magenta
+    case Cyan
+}
+
+protocol Printer {
+    func print(color: PrintColor, _ str: String)
+    func print(str: String)
+    func println()
+}
+
+class TermPrinter: Printer {
+    let colorCodes: Dictionary<PrintColor, String> = [
+        .Default: "39",
+        .Red: "31",
+        .Green: "32",
+        .Yellow: "33",
+        .Blue: "34",
+        .Magenta: "35",
+        .Cyan: "36"
+    ]
+
+    func printEscape(color: PrintColor) {
+        Swift.print("\x1B[\(colorCodes[color])m")
+    }
+    
+    func print(color: PrintColor, _ str: String) {
+        printEscape(color)
+        Swift.print(str)
+        printEscape(.Default)
+    }
+    
+    func print(str: String) {
+        print(.Default, str)
+    }
+    
+    func println() {
+        Swift.println()
+    }
+}
+
 struct Pointer: Hashable, Printable {
     let address: UInt
     
@@ -185,24 +232,6 @@ func limit(str: String, maxLength: Int, continuation: String = "...") -> String 
     return str[start..truncationPoint] + continuation
 }
 
-enum Term: String {
-    case Default = "39"
-    case Red = "31"
-    case Green = "32"
-    case Yellow = "33"
-    case Blue = "34"
-    case Magenta = "35"
-    case Cyan = "36"
-    
-    func escapeSequence() -> String {
-        return "\x1B[\(self.toRaw())m"
-    }
-    
-    func wrap(contents: String) -> String {
-        return "\(escapeSequence())\(contents)\(Default.escapeSequence())"
-    }
-}
-
 class ScanEntry {
     let parent: ScanEntry?
     var parentOffset: Int
@@ -254,7 +283,7 @@ class ScanResult {
     let memory: Memory
     var children = ScanResult[]()
     var indent = 0
-    var color: Term = .Default
+    var color: PrintColor = .Default
     
     init(entry: ScanEntry, parent: ScanResult?, memory: Memory) {
         self.entry = entry
@@ -276,41 +305,41 @@ class ScanResult {
         return entry.address.description
     }
     
-    func dump() {
+    func dump(p: Printer) {
         if let parent = entry.parent {
-            print("(")
-            print(self.parent!.color.wrap("\(pad(parent.index, 3)), \(pad(self.parent!.name, 24))@\(pad(entry.parentOffset, 3, align: .Left))"))
-            print(") <- ")
+            p.print("(")
+            p.print(self.parent!.color, "\(pad(parent.index, 3)), \(pad(self.parent!.name, 24))@\(pad(entry.parentOffset, 3, align: .Left))")
+            p.print(") <- ")
         }
         
-        print(color.wrap("\(pad(entry.index, 3)) \(entry.address.description): "))
+        p.print(color, "\(pad(entry.index, 3)) \(entry.address.description): ")
         
-        print(color.wrap("\(pad(memory.buffer.count, 5)) bytes "))
-        print(color.wrap(memory.isMalloc ? "<malloc> " : "<unknwn> "))
+        p.print(color, "\(pad(memory.buffer.count, 5)) bytes ")
+        p.print(color, memory.isMalloc ? "<malloc> " : "<unknwn> ")
         
-        print(color.wrap(limit(memory.hex(), 67)))
+        p.print(color, limit(memory.hex(), 67))
         
         if let symbolName = entry.address.symbolName() {
-            print(" Symbol \(symbolName)")
+            p.print(" Symbol \(symbolName)")
         }
         
         if let objCClass = ObjCClass.atAddress(entry.address) {
-            print(" ObjC class \(objCClass.name)")
+            p.print(" ObjC class \(objCClass.name)")
         }
         
         let strings = memory.scanStrings()
         if strings.count > 0 {
-            print(" -- strings: (")
-            print(", ".join(strings))
-            print(")")
+            p.print(" -- strings: (")
+            p.print(", ".join(strings))
+            p.print(")")
         }
-        println()
+        p.println()
     }
     
-    func recursiveDump() {
+    func recursiveDump(p: Printer) {
         var entryColorIndex = 0
-        let entryColors: Term[] = [ .Red, .Green, .Yellow, .Blue, .Magenta, .Cyan ]
-        func nextColor() -> Term {
+        let entryColors: PrintColor[] = [ .Red, .Green, .Yellow, .Blue, .Magenta, .Cyan ]
+        func nextColor() -> PrintColor {
             return entryColors[entryColorIndex++ % entryColors.count]
         }
         
@@ -323,9 +352,9 @@ class ScanResult {
             }
             
             for i in 0..result.indent {
-                print("  ")
+                p.print("  ")
             }
-            result.dump()
+            result.dump(p)
             for child in result.children {
                 child.indent = result.indent + 1
                 chain.append(child)
@@ -385,5 +414,5 @@ func dumpmem<T>(var x: T, limit: Int) -> ScanResult {
 class TestClass {}
 let obj = TestClass()
 let result = dumpmem(obj, 150)
-result.recursiveDump()
+result.recursiveDump(TermPrinter())
 
