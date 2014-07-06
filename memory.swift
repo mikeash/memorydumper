@@ -3,11 +3,15 @@
 import Foundation
 import Darwin
 
-struct Pointer: Hashable {
+struct Pointer: Hashable, Printable {
     let address: UInt
     
     var hashValue: Int {
         return reinterpretCast(address)
+    }
+    
+    var description: String {
+        return NSString(format: "0x%0*llx", sizeof(address.dynamicType) * 2, address)
     }
 }
 
@@ -97,11 +101,6 @@ struct Memory {
         return hexFromArray(buffer)
     }
 }
-
-func formatPointer(ptr: Pointer) -> String {
-    return NSString(format: "0x%0*llx", sizeof(UInt.self) * 2, ptr.address)
-}
-
 
 func hexFromArray(mem: UInt8[]) -> String {
     let spacesInterval = 8
@@ -237,10 +236,10 @@ class ScanResult {
         let pointers = memory.scanPointers()
         if pointers.count > 0 {
             if let c = classMap[pointers[0].pointer] {
-                return "<\(c.name): \(formatPointer(entry.address))>"
+                return "<\(c.name): \(entry.address.description)>"
             }
         }
-        return formatPointer(entry.address)
+        return entry.address.description
     }
     
     func dump() {
@@ -250,7 +249,7 @@ class ScanResult {
             print(") <- ")
         }
         
-        print(color.wrap("\(pad(entry.index, 3)) \(formatPointer(entry.address))"))
+        print(color.wrap("\(pad(entry.index, 3)) \(entry.address.description)"))
         print(": ")
         
         print("\(pad(memory.buffer.count, 5)) bytes ")
