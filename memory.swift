@@ -218,6 +218,16 @@ class ScanEntry {
 }
 
 struct ObjCClass {
+    static let classMap: Dictionary<Pointer, ObjCClass> = {
+        var tmpMap = Dictionary<Pointer, ObjCClass>()
+        for c in AllClasses() { tmpMap[c.address] = c }
+        return tmpMap
+    }()
+    
+    static func atAddress(address: Pointer) -> ObjCClass? {
+        return classMap[address]
+    }
+    
     let address: Pointer
     let name: String
 }
@@ -238,12 +248,6 @@ func AllClasses() -> ObjCClass[] {
     return result
 }
 
-var classMap = Dictionary<Pointer, ObjCClass>()
-for c in AllClasses() { classMap[c.address] = c }
-//for (addr, objCClass) in classMap {
-//    println("\(formatPointer(addr)) \(objCClass.name)")
-//}
-
 class ScanResult {
     let entry: ScanEntry
     let parent: ScanResult?
@@ -259,13 +263,13 @@ class ScanResult {
     }
     
     var name: String {
-        if let c = classMap[entry.address] {
+        if let c = ObjCClass.atAddress(entry.address) {
             return c.name
         }
         
         let pointers = memory.scanPointers()
         if pointers.count > 0 {
-            if let c = classMap[pointers[0].pointer] {
+            if let c = ObjCClass.atAddress(pointers[0].pointer) {
                 return "<\(c.name): \(entry.address.description)>"
             }
         }
@@ -291,7 +295,7 @@ class ScanResult {
             print(" Symbol \(symbolName)")
         }
         
-        if let objCClass = classMap[entry.address] {
+        if let objCClass = ObjCClass.atAddress(entry.address) {
             print(" ObjC class \(objCClass.name)")
         }
         
