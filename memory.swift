@@ -3,16 +3,27 @@
 import Foundation
 import Darwin
 
+struct Pointer: Hashable {
+    let address: UInt
+    
+    var hashValue: Int {
+        return reinterpretCast(address)
+    }
+}
+
+func ==(a: Pointer, b: Pointer) -> Bool {
+    return a.address == b.address
+}
 
 struct Memory {
     let buffer: UInt8[]
     let isMalloc: Bool
     
-    static func readIntoArray(ptr: UInt, var _ buffer: UInt8[]) -> Bool {
+    static func readIntoArray(ptr: Pointer, var _ buffer: UInt8[]) -> Bool {
         let result = buffer.withUnsafePointerToElements {
             (targetPtr: UnsafePointer<UInt8>) -> kern_return_t in
             
-            let ptr64 = UInt64(ptr)
+            let ptr64 = UInt64(ptr.address)
             let target: UInt = reinterpretCast(targetPtr)
             let target64 = UInt64(target)
             var outsize: mach_vm_size_t = 0
@@ -21,8 +32,8 @@ struct Memory {
         return result == KERN_SUCCESS
     }
     
-    static func read(ptr: UInt, knownSize: Int? = nil) -> Memory? {
-        let convertedPtr: UnsafePointer<Int> = reinterpretCast(ptr)
+    static func read(ptr: Pointer, knownSize: Int? = nil) -> Memory? {
+        let convertedPtr: UnsafePointer<Int> = reinterpretCast(ptr.address)
         var length = Int(malloc_size(convertedPtr))
         let isMalloc = length > 0
         if length == 0 {
@@ -48,7 +59,7 @@ struct Memory {
             let ptrptr: UnsafePointer<UInt> = reinterpretCast(memPtr)
             let count = self.buffer.count / 8
             for i in 0..count {
-                pointers.append(PointerAndOffset(pointer: ptrptr[i], offset: i * 8))
+                pointers.append(PointerAndOffset(pointer: Pointer(address: ptrptr[i]), offset: i * 8))
             }
         }
         return pointers
@@ -87,8 +98,8 @@ struct Memory {
     }
 }
 
-func formatPointer(ptr: UInt) -> String {
-    return NSString(format: "0x%0*llx", sizeof(UInt.self) * 2, ptr)
+func formatPointer(ptr: Pointer) -> String {
+    return NSString(format: "0x%0*llx", sizeof(UInt.self) * 2, ptr.address)
 }
 
 
@@ -105,7 +116,7 @@ func hexFromArray(mem: UInt8[]) -> String {
 }
 
 struct PointerAndOffset {
-    let pointer: UInt
+    let pointer: Pointer
     let offset: Int
 }
 
@@ -166,10 +177,10 @@ enum Term: String {
 class ScanEntry {
     let parent: ScanEntry?
     var parentOffset: Int
-    let address: UInt
+    let address: Pointer
     var index: Int
     
-    init(parent: ScanEntry?, parentOffset: Int, address: UInt, index: Int) {
+    init(parent: ScanEntry?, parentOffset: Int, address: Pointer, index: Int) {
         self.parent = parent
         self.parentOffset = parentOffset
         self.address = address
@@ -178,7 +189,7 @@ class ScanEntry {
 }
 
 struct ObjCClass {
-    let address: UInt
+    let address: Pointer
     let name: String
 }
 
@@ -190,7 +201,7 @@ func AllClasses() -> ObjCClass[] {
     
     for i in 0..count {
         let rawClass: AnyClass! = classList[Int(i)]
-        let address: UInt = reinterpretCast(rawClass)
+        let address: Pointer = Pointer(address: reinterpretCast(rawClass))
         let name = NSStringFromClass(rawClass)
         result.append(ObjCClass(address: address, name: name))
     }
@@ -198,7 +209,7 @@ func AllClasses() -> ObjCClass[] {
     return result
 }
 
-var classMap = Dictionary<UInt, ObjCClass>()
+var classMap = Dictionary<Pointer, ObjCClass>()
 for c in AllClasses() { classMap[c.address] = c }
 //for (addr, objCClass) in classMap {
 //    println("\(formatPointer(addr)) \(objCClass.name)")
@@ -289,15 +300,15 @@ class ScanResult {
 
 func dumpmem<T>(var x: T) -> ScanResult {
     var count = 0
-    var seen = Dictionary<UInt, Bool>()
+    var seen = Dictionary<Pointer, Bool>()
     var toScan = Array<ScanEntry>()
     
-    var results = Dictionary<UInt, ScanResult>()
+    var results = Dictionary<Pointer, ScanResult>()
     
     return withUnsafePointer(&x) {
         (ptr: UnsafePointer<T>) -> ScanResult in
         
-        let firstAddr: UInt = reinterpretCast(ptr)
+        let firstAddr: Pointer = Pointer(address: reinterpretCast(ptr))
         let firstEntry = ScanEntry(parent: nil, parentOffset: 0, address: firstAddr, index: 0)
         seen[firstAddr] = true
         toScan.append(firstEntry)
