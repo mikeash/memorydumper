@@ -26,6 +26,23 @@ struct Pointer: Hashable, Printable {
     var description: String {
         return NSString(format: "0x%0*llx", sizeof(address.dynamicType) * 2, address)
     }
+
+    func symbolInfo() -> Dl_info? {
+        var info = Dl_info(dli_fname: "", dli_fbase: nil, dli_sname: "", dli_saddr: nil)
+        let ptr: UnsafePointer<Void> = reinterpretCast(address)
+        let result = dladdr(ptr, &info)
+        return (result == 0 ? nil : info)
+    }
+    
+    func symbolName() -> String? {
+        if let info = symbolInfo() {
+            let symbolAddress: UInt = reinterpretCast(info.dli_saddr)
+            if symbolAddress == address {
+                return String.fromCString(info.dli_sname)
+            }
+        }
+        return nil
+    }
 }
 
 func ==(a: Pointer, b: Pointer) -> Bool {
@@ -269,6 +286,10 @@ class ScanResult {
         print(memory.isMalloc ? "<malloc> " : "<unknwn> ")
         
         print(limit(memory.hex(), 67))
+        
+        if let symbolName = entry.address.symbolName() {
+            print(" Symbol \(symbolName)")
+        }
         
         if let objCClass = classMap[entry.address] {
             print(" ObjC class \(objCClass.name)")
