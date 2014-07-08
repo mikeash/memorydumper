@@ -155,10 +155,10 @@ func ==(a: Pointer, b: Pointer) -> Bool {
 }
 
 struct Memory {
-    let buffer: UInt8[]
+    let buffer: [UInt8]
     let isMalloc: Bool
     
-    static func readIntoArray(ptr: Pointer, var _ buffer: UInt8[]) -> Bool {
+    static func readIntoArray(ptr: Pointer, var _ buffer: [UInt8]) -> Bool {
         let result = buffer.withUnsafePointerToElements {
             (targetPtr: UnsafePointer<UInt8>) -> kern_return_t in
             
@@ -183,15 +183,15 @@ struct Memory {
             length = knownSize!
         }
         
-        var result = UInt8[](count: length, repeatedValue: 0)
+        var result = [UInt8](count: length, repeatedValue: 0)
         let success = readIntoArray(ptr, result)
         return (success
             ? Memory(buffer: result, isMalloc: isMalloc)
             : nil)
     }
     
-    func scanPointers() -> PointerAndOffset[] {
-        var pointers = PointerAndOffset[]()
+    func scanPointers() -> [PointerAndOffset] {
+        var pointers = [PointerAndOffset]()
         buffer.withUnsafePointerToElements {
             (memPtr: UnsafePointer<UInt8>) -> Void in
             
@@ -204,12 +204,12 @@ struct Memory {
         return pointers
     }
     
-    func scanStrings() -> String[] {
+    func scanStrings() -> [String] {
         let lowerBound: UInt8 = 32
         let upperBound: UInt8 = 126
         
-        var current = UInt8[]()
-        var strings = String[]()
+        var current = [UInt8]()
+        var strings = [String]()
         func reset() {
             if current.count >= 4 {
                 let str = NSMutableString(capacity: current.count)
@@ -237,7 +237,7 @@ struct Memory {
     }
 }
 
-func hexFromArray(mem: UInt8[]) -> String {
+func hexFromArray(mem: [UInt8]) -> String {
     let spacesInterval = 8
     let str = NSMutableString(capacity: mem.count * 2)
     for (index, byte) in enumerate(mem) {
@@ -319,11 +319,11 @@ struct ObjCClass {
     let name: String
 }
 
-func AllClasses() -> ObjCClass[] {
+func AllClasses() -> [ObjCClass] {
     var count: CUnsignedInt = 0
     let classList = objc_copyClassList(&count)
     
-    var result = ObjCClass[]()
+    var result = [ObjCClass]()
     
     for i in 0..<count {
         let rawClass: AnyClass! = classList[Int(i)]
@@ -339,7 +339,7 @@ class ScanResult {
     let entry: ScanEntry
     let parent: ScanResult?
     let memory: Memory
-    var children = ScanResult[]()
+    var children = [ScanResult]()
     var indent = 0
     var color: PrintColor = .Default
     
@@ -398,7 +398,7 @@ class ScanResult {
     
     func recursiveDump(p: Printer) {
         var entryColorIndex = 0
-        let entryColors: PrintColor[] = [ .Red, .Green, .Yellow, .Blue, .Magenta, .Cyan ]
+        let entryColors: [PrintColor] = [ .Red, .Green, .Yellow, .Blue, .Magenta, .Cyan ]
         func nextColor() -> PrintColor {
             return entryColors[entryColorIndex++ % entryColors.count]
         }
