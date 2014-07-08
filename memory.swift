@@ -197,7 +197,7 @@ struct Memory {
             
             let ptrptr: UnsafePointer<UInt> = reinterpretCast(memPtr)
             let count = self.buffer.count / 8
-            for i in 0..count {
+            for i in 0..<count {
                 pointers.append(PointerAndOffset(pointer: Pointer(address: ptrptr[i]), offset: i * 8))
             }
         }
@@ -268,7 +268,7 @@ func pad(value: Any, minWidth: Int, padChar: String = " ", align: Alignment = .R
     }
     
     if minWidth > countElements(str) {
-        for i in 0..(minWidth - countElements(str)) {
+        for i in 0..<(minWidth - countElements(str)) {
             accumulator += padChar
         }
     }
@@ -287,7 +287,7 @@ func limit(str: String, maxLength: Int, continuation: String = "...") -> String 
     
     let start = str.startIndex
     let truncationPoint = advance(start, maxLength)
-    return str[start..truncationPoint] + continuation
+    return str[start..<truncationPoint] + continuation
 }
 
 class ScanEntry {
@@ -325,7 +325,7 @@ func AllClasses() -> ObjCClass[] {
     
     var result = ObjCClass[]()
     
-    for i in 0..count {
+    for i in 0..<count {
         let rawClass: AnyClass! = classList[Int(i)]
         let address: Pointer = Pointer(address: reinterpretCast(rawClass))
         let name = NSStringFromClass(rawClass)
@@ -411,7 +411,7 @@ class ScanResult {
                 result.color = nextColor()
             }
             
-            for i in 0..result.indent {
+            for i in 0..<result.indent {
                 p.print("  ")
             }
             result.dump(p)
