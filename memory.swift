@@ -465,7 +465,7 @@ class ScanResult {
                 p.print("  ")
             }
             result.dump(p)
-            for child in result.children {
+            for child in result.children.reverse() {
                 child.indent = result.indent + 1
                 chain.append(child)
             }
