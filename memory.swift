@@ -148,6 +148,22 @@ struct Pointer: Hashable, Printable {
         }
         return nil
     }
+    
+    func nextSymbol(limit: Int) -> Pointer? {
+        if let myInfo = symbolInfo() {
+            for i in 1..<limit {
+                let candidate = self + i
+                let candidateInfo = candidate.symbolInfo()
+                if !candidateInfo {
+                    return nil
+                }
+                if myInfo.dli_sname != candidateInfo!.dli_sname {
+                    return candidate
+                }
+            }
+        }
+        return nil;
+    }
 }
 
 func ==(a: Pointer, b: Pointer) -> Bool {
@@ -156,6 +172,10 @@ func ==(a: Pointer, b: Pointer) -> Bool {
 
 func +(a: Pointer, b: Int) -> Pointer {
     return Pointer(address: a.address + UInt(b))
+}
+
+func -(a: Pointer, b: Pointer) -> Int {
+    return Int(a.address - b.address)
 }
 
 struct Memory {
@@ -179,6 +199,14 @@ struct Memory {
         let convertedPtr: UnsafePointer<Int> = reinterpretCast(ptr.address)
         var length = Int(malloc_size(convertedPtr))
         let isMalloc = length > 0
+        let isSymbol = ptr.symbolName() != nil
+        
+        if isSymbol {
+            if let nextSymbol = ptr.nextSymbol(4096) {
+                length = nextSymbol - ptr
+            }
+        }
+        
         if length == 0 && !knownSize {
             var result = [UInt8]()
             while (result.count < 128) {
