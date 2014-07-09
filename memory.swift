@@ -181,6 +181,7 @@ func -(a: Pointer, b: Pointer) -> Int {
 struct Memory {
     let buffer: [UInt8]
     let isMalloc: Bool
+    let isSymbol: Bool
     
     static func readIntoArray(ptr: Pointer, var _ buffer: [UInt8]) -> Bool {
         let result = buffer.withUnsafePointerToElements {
@@ -218,7 +219,7 @@ struct Memory {
                 result.extend(eightBytes)
             }
             return (result.count > 0
-                ? Memory(buffer: result, isMalloc: false)
+                ? Memory(buffer: result, isMalloc: false, isSymbol: isSymbol)
                 : nil)
         } else {
             if knownSize {
@@ -228,7 +229,7 @@ struct Memory {
             var result = [UInt8](count: length, repeatedValue: 0)
             let success = readIntoArray(ptr, result)
             return (success
-                ? Memory(buffer: result, isMalloc: isMalloc)
+                ? Memory(buffer: result, isMalloc: isMalloc, isSymbol: isSymbol)
                 : nil)
         }
     }
@@ -418,7 +419,13 @@ class ScanResult {
         p.print(color, "\(pad(entry.index, 3)) \(entry.address.description): ")
         
         p.print(color, "\(pad(memory.buffer.count, 5)) bytes ")
-        p.print(color, memory.isMalloc ? "<malloc> " : "<unknwn> ")
+        if memory.isMalloc {
+            p.print(color, "<malloc> ")
+        } else if memory.isSymbol {
+            p.print(color, "<symbol> ")
+        } else {
+            p.print(color, "<unknwn> ")
+        }
         
         p.print(color, limit(memory.hex(), 67))
         
