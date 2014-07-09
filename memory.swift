@@ -471,10 +471,29 @@ func dumpmem<T>(var x: T, limit: Int) -> ScanResult {
 //dumpmem(42)
 //let obj = NSObject()
 //println(obj.description)
-class TestClass {}
-let obj = TestClass()
-let result = dumpmem(obj, 150)
-let printer = HTMLPrinter()
+class TestClass {
+    let a: UInt64 = 0xaaaaaaaaaaaaaaaa
+    
+    func method1() {}
+    func method2() {}
+}
+
+class TestSubclass : TestClass {
+    let b: UInt64 = 0xbbbbbbbbbbbbbbbb
+    
+    override func method2() {}
+    func method3() {}
+    func method4() {}
+}
+
+struct TestStruct {
+    let a: UInt64 = 0xaaaaaaaaaaaaaaaa
+    let b: UInt64 = 0xbbbbbbbbbbbbbbbb
+}
+
+let obj = TestSubclass()
+let result = dumpmem(obj, 150000)
+let printer = TermPrinter()
 result.recursiveDump(printer)
 printer.end()
 
