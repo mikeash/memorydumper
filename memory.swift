@@ -157,7 +157,7 @@ struct Pointer: Hashable, Printable {
                 if !candidateInfo {
                     return nil
                 }
-                if myInfo.dli_sname != candidateInfo!.dli_sname {
+                if myInfo.dli_saddr != candidateInfo!.dli_saddr {
                     return candidate
                 }
             }
