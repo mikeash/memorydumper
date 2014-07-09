@@ -154,6 +154,10 @@ func ==(a: Pointer, b: Pointer) -> Bool {
     return a.address == b.address
 }
 
+func +(a: Pointer, b: Int) -> Pointer {
+    return Pointer(address: a.address + UInt(b))
+}
+
 struct Memory {
     let buffer: [UInt8]
     let isMalloc: Bool
@@ -175,19 +179,30 @@ struct Memory {
         let convertedPtr: UnsafePointer<Int> = reinterpretCast(ptr.address)
         var length = Int(malloc_size(convertedPtr))
         let isMalloc = length > 0
-        if length == 0 {
-            length = 64
+        if length == 0 && !knownSize {
+            var result = [UInt8]()
+            while (result.count < 128) {
+                var eightBytes = [UInt8](count: 8, repeatedValue: 0)
+                let success = readIntoArray(ptr + result.count, eightBytes)
+                if !success {
+                    break
+                }
+                result.extend(eightBytes)
+            }
+            return (result.count > 0
+                ? Memory(buffer: result, isMalloc: false)
+                : nil)
+        } else {
+            if knownSize {
+                length = knownSize!
+            }
+            
+            var result = [UInt8](count: length, repeatedValue: 0)
+            let success = readIntoArray(ptr, result)
+            return (success
+                ? Memory(buffer: result, isMalloc: isMalloc)
+                : nil)
         }
-        
-        if knownSize {
-            length = knownSize!
-        }
-        
-        var result = [UInt8](count: length, repeatedValue: 0)
-        let success = readIntoArray(ptr, result)
-        return (success
-            ? Memory(buffer: result, isMalloc: isMalloc)
-            : nil)
     }
     
     func scanPointers() -> [PointerAndOffset] {
