@@ -239,7 +239,7 @@ struct Memory {
         buffer.withUnsafePointerToElements {
             (memPtr: UnsafePointer<UInt8>) -> Void in
             
-            let ptrptr: UnsafePointer<UInt> = reinterpretCast(memPtr)
+            let ptrptr = UnsafePointer<UInt>(memPtr)
             let count = self.buffer.count / 8
             for i in 0..<count {
                 pointers.append(PointerAndOffset(pointer: Pointer(address: ptrptr[i]), offset: i * 8))
