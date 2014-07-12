@@ -394,6 +394,10 @@ struct ObjCClass {
                 p.print("    Ivar: \(ivar_getName($0)) \(ivar_getTypeEncoding($0))")
                 p.println()
             }
+            iterate(class_copyPropertyList(classPtr, nil)) {
+                p.print("    Property: \(property_getName($0)) \(property_getAttributes($0))")
+                p.println()
+            }
             iterate(class_copyMethodList(classPtr, nil)) {
                 p.print("    Method: \(sel_getName(method_getName($0))) \(method_getTypeEncoding($0))")
                 p.println()
