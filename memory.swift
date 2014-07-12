@@ -600,7 +600,7 @@ struct TestStruct {
 }
 
 let obj = TestSubclass()
-let nsobj = TestNSClass()
+let nsobj = TestNSSubclass()
 let str = TestStruct()
 let printer = TermPrinter()
 ObjCClass.dumpObjectClasses(printer, obj)
