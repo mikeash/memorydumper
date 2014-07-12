@@ -359,8 +359,47 @@ struct ObjCClass {
         return classMap[address]
     }
     
+    static func dumpObjectClasses(p: Printer, _ obj: AnyObject) {
+        var classPtr: AnyClass! = object_getClass(obj)
+        while classPtr {
+            ObjCClass(address: Pointer(address: reinterpretCast(classPtr)), name: String.fromCString(class_getName(classPtr))!).dump(p)
+            classPtr = class_getSuperclass(classPtr)
+        }
+    }
+    
     let address: Pointer
     let name: String
+    
+    func dump(p: Printer) {
+        func iterate(pointer: UnsafePointer<COpaquePointer>, callForEach: (COpaquePointer) -> Void) {
+            if(pointer) {
+                var i = 0;
+                while pointer[i] {
+                    callForEach(pointer[i])
+                    i++
+                }
+                free(pointer)
+            }
+        }
+        
+        let classPtr: AnyClass = reinterpretCast(address.address)
+        p.print("Objective-C class \(class_getName(classPtr))")
+        
+        if class_getName(classPtr) == "NSObject" {
+            println()
+        } else {
+            p.print(":")
+            p.println()
+            iterate(class_copyIvarList(classPtr, nil)) {
+                p.print("    Ivar: \(ivar_getName($0)) \(ivar_getTypeEncoding($0))")
+                p.println()
+            }
+            iterate(class_copyMethodList(classPtr, nil)) {
+                p.print("    Method: \(sel_getName(method_getName($0))) \(method_getTypeEncoding($0))")
+                p.println()
+            }
+        }
+    }
 }
 
 func AllClasses() -> [ObjCClass] {
@@ -536,14 +575,34 @@ class TestSubclass : TestClass {
     func method4() {}
 }
 
+class TestNSClass: NSObject {
+    let a: UInt64 = 0xaaaaaaaaaaaaaaaa
+    
+    func method1() {}
+    func method2() {}
+}
+
+class TestNSSubclass : TestClass {
+    let b: UInt64 = 0xbbbbbbbbbbbbbbbb
+    
+    override func method2() {}
+    func method3() {}
+    func method4() {}
+}
+
 struct TestStruct {
     let a: UInt64 = 0xaaaaaaaaaaaaaaaa
     let b: UInt64 = 0xbbbbbbbbbbbbbbbb
 }
 
 let obj = TestSubclass()
-let result = dumpmem(obj, 150000)
+let nsobj = TestNSClass()
+let str = TestStruct()
 let printer = TermPrinter()
-result.recursiveDump(printer)
+ObjCClass.dumpObjectClasses(printer, obj)
+ObjCClass.dumpObjectClasses(printer, nsobj)
+dumpmem(obj, 32).recursiveDump(printer)
+dumpmem(nsobj, 32).recursiveDump(printer)
+dumpmem(str, 32).recursiveDump(printer)
 printer.end()
 
