@@ -71,7 +71,7 @@ class HTMLPrinter: Printer {
         .Default: "black",
         .Red: "darkred",
         .Green: "green",
-        .Yellow: "gold",
+        .Yellow: "goldenrod",
         .Blue: "darkblue",
         .Magenta: "darkmagenta",
         .Cyan: "darkcyan"
