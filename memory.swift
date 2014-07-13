@@ -605,8 +605,12 @@ let str = TestStruct()
 let printer = TermPrinter()
 ObjCClass.dumpObjectClasses(printer, obj)
 ObjCClass.dumpObjectClasses(printer, nsobj)
-dumpmem(obj, 32).recursiveDump(printer)
-dumpmem(nsobj, 32).recursiveDump(printer)
-dumpmem(str, 32).recursiveDump(printer)
+func dumpmem<T>(x: T) {
+    println("Dumping \(x)")
+    dumpmem(x, 32).recursiveDump(printer)
+}
+dumpmem(obj)
+dumpmem(nsobj)
+dumpmem(str)
 printer.end()
 
