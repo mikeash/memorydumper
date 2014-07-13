@@ -599,9 +599,14 @@ struct TestStruct {
     let b: UInt64 = 0xbbbbbbbbbbbbbbbb
 }
 
+struct PaddingTestStruct {
+    let a: UInt8 = 0xaa
+    let b: UInt16 = 0xbbbb
+    let c: UInt64 = 0xcccccccccccccccc
+}
+
 let obj = TestSubclass()
 let nsobj = TestNSSubclass()
-let str = TestStruct()
 let printer = TermPrinter()
 ObjCClass.dumpObjectClasses(printer, obj)
 ObjCClass.dumpObjectClasses(printer, nsobj)
@@ -609,8 +614,9 @@ func dumpmem<T>(x: T) {
     println("Dumping \(x)")
     dumpmem(x, 32).recursiveDump(printer)
 }
+dumpmem(TestStruct())
+dumpmem(PaddingTestStruct())
 dumpmem(obj)
 dumpmem(nsobj)
-dumpmem(str)
 printer.end()
 
