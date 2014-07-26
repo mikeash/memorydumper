@@ -46,7 +46,7 @@ class TermPrinter: Printer {
     ]
 
     func printEscape(color: PrintColor) {
-        Swift.print("\x1B[\(colorCodes[color])m")
+        Swift.print("\u{1B}[\(colorCodes[color]!)m")
     }
     
     func print(color: PrintColor, _ str: String) {
