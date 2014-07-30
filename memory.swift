@@ -470,7 +470,7 @@ class ScanResult {
             p.print(color, "<unknwn> ")
         }
         
-        p.print(color, limit(memory.hex(), 67))
+        p.print(color, limit(memory.hex(), 101))
         
         if let symbolName = entry.address.symbolName() {
             p.print(" Symbol \(symbolName)")
