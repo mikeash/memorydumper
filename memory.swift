@@ -561,62 +561,70 @@ func dumpmem<T>(var x: T, limit: Int) -> ScanResult {
 }
 
 
-//dumpmem(42)
-//let obj = NSObject()
-//println(obj.description)
-class TestClass {
-    let a: UInt64 = 0xaaaaaaaaaaaaaaaa
-    
-    func method1() {}
-    func method2() {}
-}
-
-class TestSubclass : TestClass {
-    let b: UInt64 = 0xbbbbbbbbbbbbbbbb
-    
-    override func method2() {}
-    func method3() {}
-    func method4() {}
-}
-
-class TestNSClass: NSObject {
-    let a: UInt64 = 0xaaaaaaaaaaaaaaaa
-    
-    func method1() {}
-    func method2() {}
-}
-
-class TestNSSubclass : TestClass {
-    let b: UInt64 = 0xbbbbbbbbbbbbbbbb
-    
-    override func method2() {}
-    func method3() {}
-    func method4() {}
-}
-
-struct TestStruct {
-    let a: UInt64 = 0xaaaaaaaaaaaaaaaa
-    let b: UInt64 = 0xbbbbbbbbbbbbbbbb
-}
-
-struct PaddingTestStruct {
-    let a: UInt8 = 0xaa
-    let b: UInt16 = 0xbbbb
-    let c: UInt64 = 0xcccccccccccccccc
-}
-
-let obj = TestSubclass()
-let nsobj = TestNSSubclass()
 let printer = TermPrinter()
-ObjCClass.dumpObjectClasses(printer, obj)
-ObjCClass.dumpObjectClasses(printer, nsobj)
+
 func dumpmem<T>(x: T) {
     println("Dumping \(x)")
     dumpmem(x, 32).recursiveDump(printer)
 }
-dumpmem(TestStruct())
-dumpmem(PaddingTestStruct())
+
+
+let obj: NSObject? = NSObject()
+let nilobj: NSObject? = nil
 dumpmem(obj)
-dumpmem(nsobj)
+dumpmem(nilobj)
+
+let x = 42
+let y: Int? = 42
+let z: Int? = nil
+
+dumpmem(x)
+dumpmem(y)
+dumpmem(z)
+
+protocol P {
+    func p()
+}
+
+extension NSObject: P {
+    func p() {}
+}
+
+extension Int: P {
+    func p() {}
+}
+
+let pobj: P = NSObject()
+dumpmem(pobj)
+
+let pint: P = 42
+dumpmem(pint)
+
+struct S: P {
+    let x: Int
+    let y: Int
+    
+    func p() {}
+}
+
+let s: P = S(x: 42, y: 43)
+dumpmem(s)
+
+let sptr = UnsafePointer<P>(calloc(UInt(sizeof(P)), 1))
+sptr.initialize(S(x: 42, y: 43))
+dumpmem(sptr)
+
+struct T: P {
+    let x: Int
+    let y: Int
+    let z: Int
+    let a: Int
+    
+    func p() {}
+}
+
+let t: P = T(x: 42, y: 43, z: 44, a: 45)
+dumpmem(t)
+
 printer.end()
 
