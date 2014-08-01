@@ -582,6 +582,11 @@ dumpmem(x)
 dumpmem(y)
 dumpmem(z)
 
+let r: NSRect? = NSMakeRect(0, 0, 0, 0)
+let rnil: NSRect? = nil
+dumpmem(r)
+dumpmem(rnil)
+
 protocol P {
     func p()
 }
@@ -625,6 +630,31 @@ struct T: P {
 
 let t: P = T(x: 42, y: 43, z: 44, a: 45)
 dumpmem(t)
+
+class Wrapper<T> {
+    let value: T
+    
+    init(_ value: T) {
+        self.value = value
+    }
+}
+
+dumpmem(Wrapper(42))
+dumpmem(Wrapper(T(x: 42, y: 43, z: 44, a: 45)))
+
+class Wrapper2<T, U> {
+    let value1: T
+    let value2: U
+    
+    init(_ value1: T, _ value2: U) {
+        self.value1 = value1
+        self.value2 = value2
+    }
+}
+
+dumpmem(Wrapper2(42, 43))
+dumpmem(Wrapper2((42, 43), 44))
+dumpmem(Wrapper2(42, (43, 44)))
 
 printer.end()
 
