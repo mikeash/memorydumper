@@ -615,9 +615,11 @@ struct S: P {
 let s: P = S(x: 42, y: 43)
 dumpmem(s)
 
+/*
 let sptr = UnsafePointer<P>(calloc(UInt(sizeof(P)), 1))
 sptr.initialize(S(x: 42, y: 43))
 dumpmem(sptr)
+*/
 
 struct T: P {
     let x: Int
