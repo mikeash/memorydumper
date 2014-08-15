@@ -188,7 +188,7 @@ struct Memory {
             (targetPtr: UnsafeBufferPointer<UInt8>) -> kern_return_t in
             
             let ptr64 = UInt64(ptr.address)
-            let target: UInt = unsafeBitCast(targetPtr, UInt.self)
+            let target: UInt = unsafeBitCast(targetPtr.baseAddress, UInt.self)
             let target64 = UInt64(target)
             var outsize: mach_vm_size_t = 0
             return mach_vm_read_overwrite(mach_task_self_, ptr64, mach_vm_size_t(buffer.count), target64, &outsize)
