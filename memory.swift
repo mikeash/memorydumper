@@ -125,7 +125,7 @@ struct Pointer: Hashable, Printable {
     let address: UInt
     
     var hashValue: Int {
-        return reinterpretCast(address)
+        return unsafeBitCast(address, Int.self)
     }
     
     var description: String {
@@ -134,14 +134,14 @@ struct Pointer: Hashable, Printable {
 
     func symbolInfo() -> Dl_info? {
         var info = Dl_info(dli_fname: "", dli_fbase: nil, dli_sname: "", dli_saddr: nil)
-        let ptr: UnsafePointer<Void> = reinterpretCast(address)
+        let ptr: UnsafePointer<Void> = unsafeBitCast(address, UnsafePointer<Void>.self)
         let result = dladdr(ptr, &info)
         return (result == 0 ? nil : info)
     }
     
     func symbolName() -> String? {
         if let info = symbolInfo() {
-            let symbolAddress: UInt = reinterpretCast(info.dli_saddr)
+            let symbolAddress: UInt = unsafeBitCast(info.dli_saddr, UInt.self)
             if symbolAddress == address {
                 return String.fromCString(info.dli_sname)
             }
@@ -188,7 +188,7 @@ struct Memory {
             (targetPtr: UnsafePointer<UInt8>) -> kern_return_t in
             
             let ptr64 = UInt64(ptr.address)
-            let target: UInt = reinterpretCast(targetPtr)
+            let target: UInt = unsafeBitCast(targetPtr, UInt.self)
             let target64 = UInt64(target)
             var outsize: mach_vm_size_t = 0
             return mach_vm_read_overwrite(mach_task_self_, ptr64, mach_vm_size_t(buffer.count), target64, &outsize)
@@ -197,7 +197,7 @@ struct Memory {
     }
     
     static func read(ptr: Pointer, knownSize: Int? = nil) -> Memory? {
-        let convertedPtr: UnsafePointer<Int> = reinterpretCast(ptr.address)
+        let convertedPtr: UnsafePointer<Int> = unsafeBitCast(ptr.address, UnsafePointer<Int>.self)
         var length = Int(malloc_size(convertedPtr))
         let isMalloc = length > 0
         let isSymbol = ptr.symbolName() != nil
@@ -362,7 +362,7 @@ struct ObjCClass {
     static func dumpObjectClasses(p: Printer, _ obj: AnyObject) {
         var classPtr: AnyClass! = object_getClass(obj)
         while classPtr {
-            ObjCClass(address: Pointer(address: reinterpretCast(classPtr)), name: String.fromCString(class_getName(classPtr))!).dump(p)
+            ObjCClass(address: Pointer(address: unsafeBitCast(classPtr, UInt.self)), name: String.fromCString(class_getName(classPtr))!).dump(p)
             classPtr = class_getSuperclass(classPtr)
         }
     }
@@ -382,7 +382,7 @@ struct ObjCClass {
             }
         }
         
-        let classPtr: AnyClass = reinterpretCast(address.address)
+        let classPtr: AnyClass = unsafeBitCast(address.address, AnyClass.self)
         p.print("Objective-C class \(class_getName(classPtr))")
         
         if class_getName(classPtr) == "NSObject" {
@@ -414,7 +414,7 @@ func AllClasses() -> [ObjCClass] {
     
     for i in 0..<count {
         let rawClass: AnyClass! = classList[Int(i)]
-        let address: Pointer = Pointer(address: reinterpretCast(rawClass))
+        let address: Pointer = Pointer(address: unsafeBitCast(rawClass, UInt.self))
         let name = NSStringFromClass(rawClass)
         result.append(ObjCClass(address: address, name: name))
     }
@@ -526,7 +526,7 @@ func dumpmem<T>(var x: T, limit: Int) -> ScanResult {
     return withUnsafePointer(&x) {
         (ptr: UnsafePointer<T>) -> ScanResult in
         
-        let firstAddr: Pointer = Pointer(address: reinterpretCast(ptr))
+        let firstAddr: Pointer = Pointer(address: unsafeBitCast(ptr, UInt.self))
         let firstEntry = ScanEntry(parent: nil, parentOffset: 0, address: firstAddr, index: 0)
         seen[firstAddr] = true
         toScan.append(firstEntry)
