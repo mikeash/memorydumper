@@ -658,5 +658,53 @@ dumpmem(Wrapper2(42, 43))
 dumpmem(Wrapper2((42, 43), 44))
 dumpmem(Wrapper2(42, (43, 44)))
 
+// BEGIN: Recursive enum using intermediate protocol
+protocol TreeProto {
+    var description: String {get}
+}
+ 
+enum Tree: TreeProto {
+    case Empty
+    case Leaf(String)
+    case Node(TreeProto, TreeProto)
+ 
+    var description: String {
+        switch self {
+        case Empty: return "<empty>"
+        case let Leaf(text): return text
+        case let Node(left, right): return "(" + left.description + ", " + right.description + ")"
+        }
+    }
+}
+ 
+let empty = Tree.Empty
+dumpmem(empty)
+
+let sadLeaf = Tree.Leaf("hello")
+dumpmem(sadLeaf)
+
+let twoNodes = Tree.Node(sadLeaf, Tree.Leaf("world"))
+dumpmem(twoNodes)
+
+let fourNodes = Tree.Node(
+    Tree.Node(Tree.Leaf("node0"), Tree.Leaf("node1")),
+    Tree.Node(Tree.Leaf("node2"), Tree.Leaf("node3")))
+dumpmem(fourNodes)
+
+let tallTree = Tree.Node(Tree.Leaf("node0"),
+    Tree.Node(Tree.Leaf("node1"),
+        Tree.Node(Tree.Leaf("node2"),
+            Tree.Node(Tree.Leaf("node3"),
+                Tree.Node(Tree.Leaf("node4"),
+                    Tree.Node(Tree.Leaf("node5"),
+                        Tree.Node(Tree.Leaf("node6"),
+                            Tree.Node(Tree.Leaf("node7"),
+                                Tree.Node(Tree.Leaf("node8"),
+                                    Tree.Node(Tree.Leaf("node9"),
+                                        Tree.Node(Tree.Leaf("node10"), Tree.Leaf("node11"))))))))))))
+dumpmem(tallTree)
+
+// END: Recursive enum using intermediate protocol
+
 printer.end()
 
