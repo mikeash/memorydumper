@@ -90,7 +90,7 @@ class HTMLPrinter: Printer {
     func escape(str: String) -> String {
         let mutable = NSMutableString(string: str)
         func replace(str: String, with: String) {
-            mutable.replaceOccurrencesOfString(str, withString: with, options: NSStringCompareOptions(0), range: NSRange(location: 0, length: mutable.length()))
+            mutable.replaceOccurrencesOfString(str, withString: with, options: NSStringCompareOptions(0), range: NSRange(location: 0, length: mutable.length))
         }
         
         replace("&", "&amp;")
@@ -371,7 +371,7 @@ struct ObjCClass {
     let name: String
     
     func dump(p: Printer) {
-        func iterate(pointer: UnsafePointer<COpaquePointer>, callForEach: (COpaquePointer) -> Void) {
+        func iterate(pointer: UnsafeMutablePointer<COpaquePointer>, callForEach: (COpaquePointer) -> Void) {
             if pointer != nil {
                 var i = 0;
                 while pointer[i] != nil {
