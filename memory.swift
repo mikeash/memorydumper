@@ -154,7 +154,7 @@ struct Pointer: Hashable, Printable {
             for i in 1..<limit {
                 let candidate = self + i
                 let candidateInfo = candidate.symbolInfo()
-                if !candidateInfo {
+                if candidateInfo == nil {
                     return nil
                 }
                 if myInfo.dli_saddr != candidateInfo!.dli_saddr {
@@ -208,7 +208,7 @@ struct Memory {
             }
         }
         
-        if length == 0 && !knownSize {
+        if length == 0 && knownSize == nil {
             var result = [UInt8]()
             while (result.count < 128) {
                 var eightBytes = [UInt8](count: 8, repeatedValue: 0)
@@ -222,7 +222,7 @@ struct Memory {
                 ? Memory(buffer: result, isMalloc: false, isSymbol: isSymbol)
                 : nil)
         } else {
-            if knownSize {
+            if knownSize != nil {
                 length = knownSize!
             }
             
@@ -361,7 +361,7 @@ struct ObjCClass {
     
     static func dumpObjectClasses(p: Printer, _ obj: AnyObject) {
         var classPtr: AnyClass! = object_getClass(obj)
-        while classPtr {
+        while classPtr != nil {
             ObjCClass(address: Pointer(address: unsafeBitCast(classPtr, UInt.self)), name: String.fromCString(class_getName(classPtr))!).dump(p)
             classPtr = class_getSuperclass(classPtr)
         }
@@ -372,9 +372,9 @@ struct ObjCClass {
     
     func dump(p: Printer) {
         func iterate(pointer: UnsafePointer<COpaquePointer>, callForEach: (COpaquePointer) -> Void) {
-            if(pointer) {
+            if pointer != nil {
                 var i = 0;
-                while pointer[i] {
+                while pointer[i] != nil {
                     callForEach(pointer[i])
                     i++
                 }
@@ -537,7 +537,7 @@ func dumpmem<T>(var x: T, limit: Int) -> ScanResult {
             
             let memory: Memory! = Memory.read(entry.address, knownSize: count == 0 ? sizeof(T.self) : nil)
             
-            if memory {
+            if memory != nil {
                 count++
                 let parent = entry.parent.map{ results[$0.address] }?
                 let result = ScanResult(entry: entry, parent: parent, memory: memory)
@@ -548,7 +548,7 @@ func dumpmem<T>(var x: T, limit: Int) -> ScanResult {
                 for pointerAndOffset in pointersAndOffsets {
                     let pointer = pointerAndOffset.pointer
                     let offset = pointerAndOffset.offset
-                    if !seen[pointer] {
+                    if seen[pointer] == nil || seen[pointer] == false {
                         seen[pointer] = true
                         let newEntry = ScanEntry(parent: entry, parentOffset: offset, address: pointer, index: count)
                         toScan.insert(newEntry, atIndex: 0)
