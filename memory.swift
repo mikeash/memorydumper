@@ -184,8 +184,8 @@ struct Memory {
     let isSymbol: Bool
     
     static func readIntoArray(ptr: Pointer, var _ buffer: [UInt8]) -> Bool {
-        let result = buffer.withUnsafePointerToElements {
-            (targetPtr: UnsafePointer<UInt8>) -> kern_return_t in
+        let result = buffer.withUnsafeBufferPointer {
+            (targetPtr: UnsafeBufferPointer<UInt8>) -> kern_return_t in
             
             let ptr64 = UInt64(ptr.address)
             let target: UInt = unsafeBitCast(targetPtr, UInt.self)
@@ -236,10 +236,10 @@ struct Memory {
     
     func scanPointers() -> [PointerAndOffset] {
         var pointers = [PointerAndOffset]()
-        buffer.withUnsafePointerToElements {
-            (memPtr: UnsafePointer<UInt8>) -> Void in
+        buffer.withUnsafeBufferPointer {
+            (memPtr: UnsafeBufferPointer<UInt8>) -> Void in
             
-            let ptrptr = UnsafePointer<UInt>(memPtr)
+            let ptrptr = UnsafePointer<UInt>(memPtr.baseAddress)
             let count = self.buffer.count / 8
             for i in 0..<count {
                 pointers.append(PointerAndOffset(pointer: Pointer(address: ptrptr[i]), offset: i * 8))
