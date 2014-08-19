@@ -90,7 +90,7 @@ class HTMLPrinter: Printer {
     func escape(str: String) -> String {
         let mutable = NSMutableString(string: str)
         func replace(str: String, with: String) {
-            mutable.replaceOccurrencesOfString(str, withString: with, options: NSStringCompareOptions(0), range: NSRange(location: 0, length: mutable.length()))
+            mutable.replaceOccurrencesOfString(str, withString: with, options: NSStringCompareOptions(0), range: NSRange(location: 0, length: mutable.length))
         }
         
         replace("&", "&amp;")
@@ -125,7 +125,7 @@ struct Pointer: Hashable, Printable {
     let address: UInt
     
     var hashValue: Int {
-        return reinterpretCast(address)
+        return unsafeBitCast(address, Int.self)
     }
     
     var description: String {
@@ -134,14 +134,14 @@ struct Pointer: Hashable, Printable {
 
     func symbolInfo() -> Dl_info? {
         var info = Dl_info(dli_fname: "", dli_fbase: nil, dli_sname: "", dli_saddr: nil)
-        let ptr: UnsafePointer<Void> = reinterpretCast(address)
+        let ptr: UnsafePointer<Void> = unsafeBitCast(address, UnsafePointer<Void>.self)
         let result = dladdr(ptr, &info)
         return (result == 0 ? nil : info)
     }
     
     func symbolName() -> String? {
         if let info = symbolInfo() {
-            let symbolAddress: UInt = reinterpretCast(info.dli_saddr)
+            let symbolAddress: UInt = unsafeBitCast(info.dli_saddr, UInt.self)
             if symbolAddress == address {
                 return String.fromCString(info.dli_sname)
             }
@@ -154,7 +154,7 @@ struct Pointer: Hashable, Printable {
             for i in 1..<limit {
                 let candidate = self + i
                 let candidateInfo = candidate.symbolInfo()
-                if !candidateInfo {
+                if candidateInfo == nil {
                     return nil
                 }
                 if myInfo.dli_saddr != candidateInfo!.dli_saddr {
@@ -184,11 +184,11 @@ struct Memory {
     let isSymbol: Bool
     
     static func readIntoArray(ptr: Pointer, var _ buffer: [UInt8]) -> Bool {
-        let result = buffer.withUnsafePointerToElements {
-            (targetPtr: UnsafePointer<UInt8>) -> kern_return_t in
+        let result = buffer.withUnsafeBufferPointer {
+            (targetPtr: UnsafeBufferPointer<UInt8>) -> kern_return_t in
             
             let ptr64 = UInt64(ptr.address)
-            let target: UInt = reinterpretCast(targetPtr)
+            let target: UInt = unsafeBitCast(targetPtr.baseAddress, UInt.self)
             let target64 = UInt64(target)
             var outsize: mach_vm_size_t = 0
             return mach_vm_read_overwrite(mach_task_self_, ptr64, mach_vm_size_t(buffer.count), target64, &outsize)
@@ -197,7 +197,7 @@ struct Memory {
     }
     
     static func read(ptr: Pointer, knownSize: Int? = nil) -> Memory? {
-        let convertedPtr: UnsafePointer<Int> = reinterpretCast(ptr.address)
+        let convertedPtr: UnsafePointer<Int> = unsafeBitCast(ptr.address, UnsafePointer<Int>.self)
         var length = Int(malloc_size(convertedPtr))
         let isMalloc = length > 0
         let isSymbol = ptr.symbolName() != nil
@@ -208,7 +208,7 @@ struct Memory {
             }
         }
         
-        if length == 0 && !knownSize {
+        if length == 0 && knownSize == nil {
             var result = [UInt8]()
             while (result.count < 128) {
                 var eightBytes = [UInt8](count: 8, repeatedValue: 0)
@@ -222,7 +222,7 @@ struct Memory {
                 ? Memory(buffer: result, isMalloc: false, isSymbol: isSymbol)
                 : nil)
         } else {
-            if knownSize {
+            if knownSize != nil {
                 length = knownSize!
             }
             
@@ -236,10 +236,10 @@ struct Memory {
     
     func scanPointers() -> [PointerAndOffset] {
         var pointers = [PointerAndOffset]()
-        buffer.withUnsafePointerToElements {
-            (memPtr: UnsafePointer<UInt8>) -> Void in
+        buffer.withUnsafeBufferPointer {
+            (memPtr: UnsafeBufferPointer<UInt8>) -> Void in
             
-            let ptrptr = UnsafePointer<UInt>(memPtr)
+            let ptrptr = UnsafePointer<UInt>(memPtr.baseAddress)
             let count = self.buffer.count / 8
             for i in 0..<count {
                 pointers.append(PointerAndOffset(pointer: Pointer(address: ptrptr[i]), offset: i * 8))
@@ -361,8 +361,8 @@ struct ObjCClass {
     
     static func dumpObjectClasses(p: Printer, _ obj: AnyObject) {
         var classPtr: AnyClass! = object_getClass(obj)
-        while classPtr {
-            ObjCClass(address: Pointer(address: reinterpretCast(classPtr)), name: String.fromCString(class_getName(classPtr))!).dump(p)
+        while classPtr != nil {
+            ObjCClass(address: Pointer(address: unsafeBitCast(classPtr, UInt.self)), name: String.fromCString(class_getName(classPtr))!).dump(p)
             classPtr = class_getSuperclass(classPtr)
         }
     }
@@ -371,10 +371,10 @@ struct ObjCClass {
     let name: String
     
     func dump(p: Printer) {
-        func iterate(pointer: UnsafePointer<COpaquePointer>, callForEach: (COpaquePointer) -> Void) {
-            if(pointer) {
+        func iterate(pointer: UnsafeMutablePointer<COpaquePointer>, callForEach: (COpaquePointer) -> Void) {
+            if pointer != nil {
                 var i = 0;
-                while pointer[i] {
+                while pointer[i] != nil {
                     callForEach(pointer[i])
                     i++
                 }
@@ -382,7 +382,7 @@ struct ObjCClass {
             }
         }
         
-        let classPtr: AnyClass = reinterpretCast(address.address)
+        let classPtr: AnyClass = unsafeBitCast(address.address, AnyClass.self)
         p.print("Objective-C class \(class_getName(classPtr))")
         
         if class_getName(classPtr) == "NSObject" {
@@ -414,7 +414,7 @@ func AllClasses() -> [ObjCClass] {
     
     for i in 0..<count {
         let rawClass: AnyClass! = classList[Int(i)]
-        let address: Pointer = Pointer(address: reinterpretCast(rawClass))
+        let address: Pointer = Pointer(address: unsafeBitCast(rawClass, UInt.self))
         let name = NSStringFromClass(rawClass)
         result.append(ObjCClass(address: address, name: name))
     }
@@ -526,7 +526,7 @@ func dumpmem<T>(var x: T, limit: Int) -> ScanResult {
     return withUnsafePointer(&x) {
         (ptr: UnsafePointer<T>) -> ScanResult in
         
-        let firstAddr: Pointer = Pointer(address: reinterpretCast(ptr))
+        let firstAddr: Pointer = Pointer(address: unsafeBitCast(ptr, UInt.self))
         let firstEntry = ScanEntry(parent: nil, parentOffset: 0, address: firstAddr, index: 0)
         seen[firstAddr] = true
         toScan.append(firstEntry)
@@ -537,7 +537,7 @@ func dumpmem<T>(var x: T, limit: Int) -> ScanResult {
             
             let memory: Memory! = Memory.read(entry.address, knownSize: count == 0 ? sizeof(T.self) : nil)
             
-            if memory {
+            if memory != nil {
                 count++
                 let parent = entry.parent.map{ results[$0.address] }?
                 let result = ScanResult(entry: entry, parent: parent, memory: memory)
@@ -548,7 +548,7 @@ func dumpmem<T>(var x: T, limit: Int) -> ScanResult {
                 for pointerAndOffset in pointersAndOffsets {
                     let pointer = pointerAndOffset.pointer
                     let offset = pointerAndOffset.offset
-                    if !seen[pointer] {
+                    if seen[pointer] == nil || seen[pointer] == false {
                         seen[pointer] = true
                         let newEntry = ScanEntry(parent: entry, parentOffset: offset, address: pointer, index: count)
                         toScan.insert(newEntry, atIndex: 0)
@@ -615,9 +615,11 @@ struct S: P {
 let s: P = S(x: 42, y: 43)
 dumpmem(s)
 
+/*
 let sptr = UnsafePointer<P>(calloc(UInt(sizeof(P)), 1))
 sptr.initialize(S(x: 42, y: 43))
 dumpmem(sptr)
+*/
 
 struct T: P {
     let x: Int
@@ -655,6 +657,54 @@ class Wrapper2<T, U> {
 dumpmem(Wrapper2(42, 43))
 dumpmem(Wrapper2((42, 43), 44))
 dumpmem(Wrapper2(42, (43, 44)))
+
+// BEGIN: Recursive enum using intermediate protocol
+protocol TreeProto {
+    var description: String {get}
+}
+ 
+enum Tree: TreeProto {
+    case Empty
+    case Leaf(String)
+    case Node(TreeProto, TreeProto)
+ 
+    var description: String {
+        switch self {
+        case Empty: return "<empty>"
+        case let Leaf(text): return text
+        case let Node(left, right): return "(" + left.description + ", " + right.description + ")"
+        }
+    }
+}
+ 
+let empty = Tree.Empty
+dumpmem(empty)
+
+let sadLeaf = Tree.Leaf("hello")
+dumpmem(sadLeaf)
+
+let twoNodes = Tree.Node(sadLeaf, Tree.Leaf("world"))
+dumpmem(twoNodes)
+
+let fourNodes = Tree.Node(
+    Tree.Node(Tree.Leaf("node0"), Tree.Leaf("node1")),
+    Tree.Node(Tree.Leaf("node2"), Tree.Leaf("node3")))
+dumpmem(fourNodes)
+
+let tallTree = Tree.Node(Tree.Leaf("node0"),
+    Tree.Node(Tree.Leaf("node1"),
+        Tree.Node(Tree.Leaf("node2"),
+            Tree.Node(Tree.Leaf("node3"),
+                Tree.Node(Tree.Leaf("node4"),
+                    Tree.Node(Tree.Leaf("node5"),
+                        Tree.Node(Tree.Leaf("node6"),
+                            Tree.Node(Tree.Leaf("node7"),
+                                Tree.Node(Tree.Leaf("node8"),
+                                    Tree.Node(Tree.Leaf("node9"),
+                                        Tree.Node(Tree.Leaf("node10"), Tree.Leaf("node11"))))))))))))
+dumpmem(tallTree)
+
+// END: Recursive enum using intermediate protocol
 
 printer.end()
 
