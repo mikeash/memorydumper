@@ -162,7 +162,7 @@ struct Pointer: Hashable, Printable {
                 }
             }
         }
-        return nil;
+        return nil
     }
 }
 
@@ -373,7 +373,7 @@ struct ObjCClass {
     func dump(p: Printer) {
         func iterate(pointer: UnsafeMutablePointer<COpaquePointer>, callForEach: (COpaquePointer) -> Void) {
             if pointer != nil {
-                var i = 0;
+                var i = 0
                 while pointer[i] != nil {
                     callForEach(pointer[i])
                     i++
