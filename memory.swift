@@ -256,9 +256,9 @@ struct Memory {
         var strings = [String]()
         func reset() {
             if current.count >= 4 {
-                let str = NSMutableString(capacity: current.count)
+                var str = String()
                 for byte in current {
-                    str.appendFormat("%c", byte)
+                    str.append(UnicodeScalar(byte))
                 }
                 strings.append(str)
             }
