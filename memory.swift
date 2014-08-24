@@ -90,7 +90,7 @@ class HTMLPrinter: Printer {
     func escape(str: String) -> String {
         let mutable = NSMutableString(string: str)
         func replace(str: String, with: String) {
-            mutable.replaceOccurrencesOfString(str, withString: with, options: NSStringCompareOptions(0), range: NSRange(location: 0, length: mutable.length()))
+            mutable.replaceOccurrencesOfString(str, withString: with, options: NSStringCompareOptions(0), range: NSRange(location: 0, length: mutable.length))
         }
         
         replace("&", "&amp;")
