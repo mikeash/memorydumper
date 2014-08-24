@@ -4,7 +4,7 @@ source="$0"
 compiled="$0"c
 
 if [[ "$source" -nt "$compiled" ]]; then
-DEVELOPER_DIR=/Applications/Xcode6-Beta.app/Contents/Developer xcrun swiftc -sdk /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.9.sdk -g "$source" -o "$compiled"  || exit
+DEVELOPER_DIR=/Applications/Xcode6-Beta.app/Contents/Developer xcrun swiftc -sdk /Applications/Xcode6-Beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.10.sdk -g "$source" -o "$compiled"  || exit
 fi
 
 "$compiled"
