@@ -197,7 +197,7 @@ struct Memory {
     }
     
     static func read(ptr: Pointer, knownSize: Int? = nil) -> Memory? {
-        let convertedPtr: UnsafePointer<Int> = unsafeBitCast(ptr.address, UnsafePointer<Int>.self)
+        let convertedPtr: UnsafePointer<Void> = unsafeBitCast(ptr.address, UnsafePointer<Void>.self)
         var length = Int(malloc_size(convertedPtr))
         let isMalloc = length > 0
         let isSymbol = ptr.symbolName() != nil
