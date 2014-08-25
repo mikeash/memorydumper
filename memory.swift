@@ -273,20 +273,16 @@ struct Memory {
     }
     
     func hex() -> String {
-        return hexFromArray(buffer)
-    }
-}
-
-func hexFromArray(mem: [UInt8]) -> String {
-    let spacesInterval = 8
-    let str = NSMutableString(capacity: mem.count * 2)
-    for (index, byte) in enumerate(mem) {
-        if index > 0 && (index % spacesInterval) == 0 {
-            str.appendString(" ")
+        let spacesInterval = 8
+        let str = NSMutableString(capacity: buffer.count * 2)
+        for (index, byte) in enumerate(buffer) {
+            if index > 0 && (index % spacesInterval) == 0 {
+                str.appendString(" ")
+            }
+            str.appendFormat("%02x", byte)
         }
-        str.appendFormat("%02x", byte)
+        return str
     }
-    return str
 }
 
 struct PointerAndOffset {
