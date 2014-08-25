@@ -254,24 +254,20 @@ struct Memory {
         
         var current = [UInt8]()
         var strings = [String]()
-        func reset() {
-            if current.count >= 4 {
-                var str = String()
-                for byte in current {
-                    str.append(UnicodeScalar(byte))
-                }
-                strings.append(str)
-            }
-            current.removeAll()
-        }
-        for byte in buffer {
+        for byte in buffer + [0] {
             if byte >= lowerBound && byte <= upperBound {
                 current.append(byte)
             } else {
-                reset()
+                if current.count >= 4 {
+                    var str = String()
+                    for byte in current {
+                        str.append(UnicodeScalar(byte))
+                    }
+                    strings.append(str)
+                }
+                current.removeAll()
             }
         }
-        reset()
         
         return strings
     }
