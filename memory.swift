@@ -354,13 +354,20 @@ struct ObjCClass {
     static func dumpObjectClasses(p: Printer, _ obj: AnyObject) {
         var classPtr: AnyClass! = object_getClass(obj)
         while classPtr != nil {
-            ObjCClass(address: Pointer(address: unsafeBitCast(classPtr, UInt.self)), name: String.fromCString(class_getName(classPtr))!).dump(p)
+            ObjCClass(address: Pointer(address: unsafeBitCast(classPtr, UInt.self))).dump(p)
             classPtr = class_getSuperclass(classPtr)
         }
     }
     
     let address: Pointer
-    let name: String
+    
+    var classPtr: AnyClass {
+        return unsafeBitCast(address.address, AnyClass.self)
+    }
+    
+    var name: String {
+        return String.fromCString(class_getName(classPtr))!
+    }
     
     func dump(p: Printer) {
         func iterate(pointer: UnsafeMutablePointer<COpaquePointer>, callForEach: (COpaquePointer) -> Void) {
@@ -374,8 +381,7 @@ struct ObjCClass {
             }
         }
         
-        let classPtr: AnyClass = unsafeBitCast(address.address, AnyClass.self)
-        p.print("Objective-C class \(class_getName(classPtr))")
+        p.print("Objective-C class \(name)")
         
         if class_getName(classPtr) == "NSObject" {
             println()
@@ -408,7 +414,7 @@ func AllClasses() -> [ObjCClass] {
         let rawClass: AnyClass! = classList[Int(i)]
         let address: Pointer = Pointer(address: unsafeBitCast(rawClass, UInt.self))
         let name = NSStringFromClass(rawClass)
-        result.append(ObjCClass(address: address, name: name))
+        result.append(ObjCClass(address: address))
     }
     
     return result
