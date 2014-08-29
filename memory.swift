@@ -513,7 +513,7 @@ class ScanResult {
     }
 }
 
-func dumpmem<T>(var x: T, limit: Int) -> ScanResult {
+func scanmem<T>(var x: T, limit: Int) -> ScanResult {
     var count = 0
     var seen = Dictionary<Pointer, Bool>()
     var toScan = Array<ScanEntry>()
@@ -562,7 +562,7 @@ let printer = TermPrinter()
 
 func dumpmem<T>(x: T) {
     println("Dumping \(x)")
-    dumpmem(x, 32).recursiveDump(printer)
+    scanmem(x, 32).recursiveDump(printer)
 }
 
 
