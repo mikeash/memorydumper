@@ -515,7 +515,7 @@ class ScanResult {
 
 func scanmem<T>(var x: T, limit: Int) -> ScanResult {
     var count = 0
-    var seen = Dictionary<Pointer, Bool>()
+    var seen = Dictionary<Pointer, Void>()
     var toScan = Array<ScanEntry>()
     
     var results = Dictionary<Pointer, ScanResult>()
@@ -525,7 +525,7 @@ func scanmem<T>(var x: T, limit: Int) -> ScanResult {
         
         let firstAddr: Pointer = Pointer(address: unsafeBitCast(ptr, UInt.self))
         let firstEntry = ScanEntry(parent: nil, parentOffset: 0, address: firstAddr, index: 0)
-        seen[firstAddr] = true
+        seen[firstAddr] = ()
         toScan.append(firstEntry)
         
         while toScan.count > 0 && count < limit {
@@ -545,8 +545,8 @@ func scanmem<T>(var x: T, limit: Int) -> ScanResult {
                 for pointerAndOffset in pointersAndOffsets {
                     let pointer = pointerAndOffset.pointer
                     let offset = pointerAndOffset.offset
-                    if seen[pointer] == nil || seen[pointer] == false {
-                        seen[pointer] = true
+                    if seen[pointer] == nil {
+                        seen[pointer] = ()
                         let newEntry = ScanEntry(parent: entry, parentOffset: offset, address: pointer, index: count)
                         toScan.insert(newEntry, atIndex: 0)
                     }
