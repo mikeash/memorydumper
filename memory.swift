@@ -102,7 +102,7 @@ class HTMLPrinter: Printer {
     }
     
     func print(color: PrintColor, _ str: String) {
-        Swift.print("<span style=\"color: \(colorNames[color])\">")
+        Swift.print("<span style=\"color: \(colorNames[color]!)\">")
         Swift.print(escape(str))
         Swift.print("</span>")
     }
