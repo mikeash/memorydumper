@@ -413,7 +413,6 @@ func AllClasses() -> [ObjCClass] {
     for i in 0..<count {
         let rawClass: AnyClass! = classList[Int(i)]
         let address: Pointer = Pointer(address: unsafeBitCast(rawClass, UInt.self))
-        let name = NSStringFromClass(rawClass)
         result.append(ObjCClass(address: address))
     }
     
