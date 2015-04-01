@@ -97,8 +97,8 @@ class HTMLPrinter: Printer {
         replace("<", "&lt;")
         replace(">", "&gt;")
         replace("  ", "&nbsp; ")
-        
-        return mutable
+
+        return mutable as String
     }
     
     func print(color: PrintColor, _ str: String) {
@@ -127,9 +127,9 @@ struct Pointer: Hashable, Printable {
     var hashValue: Int {
         return unsafeBitCast(address, Int.self)
     }
-    
+
     var description: String {
-        return NSString(format: "0x%0*llx", sizeof(address.dynamicType) * 2, address)
+        return NSString(format: "0x%0*llx", sizeof(address.dynamicType) * 2, address) as String
     }
 
     func symbolInfo() -> Dl_info? {
@@ -281,7 +281,7 @@ struct Memory {
             }
             str.appendFormat("%02x", byte)
         }
-        return str
+        return str as String
     }
 }
 
@@ -303,8 +303,8 @@ func pad(value: Any, minWidth: Int, padChar: String = " ", align: Alignment = .R
         accumulator += str
     }
     
-    if minWidth > countElements(str) {
-        for i in 0..<(minWidth - countElements(str)) {
+    if minWidth > count(str) {
+        for i in 0..<(minWidth - count(str)) {
             accumulator += padChar
         }
     }
@@ -317,7 +317,7 @@ func pad(value: Any, minWidth: Int, padChar: String = " ", align: Alignment = .R
 }
 
 func limit(str: String, maxLength: Int, continuation: String = "...") -> String {
-    if countElements(str) <= maxLength {
+    if count(str) <= maxLength {
         return str
     }
     
@@ -532,11 +532,9 @@ func scanmem<T>(var x: T, limit: Int) -> ScanResult {
             let entry = toScan.removeLast()
             entry.index = count
             
-            let memory: Memory! = Memory.read(entry.address, knownSize: count == 0 ? sizeof(T.self) : nil)
-            
-            if memory != nil {
+            if let memory = Memory.read(entry.address, knownSize: count == 0 ? sizeof(T.self) : nil) {
                 count++
-                let parent = entry.parent.map{ results[$0.address] }?
+                let parent = entry.parent.flatMap { results[$0.address] }
                 let result = ScanResult(entry: entry, parent: parent, memory: memory)
                 parent?.children.append(result)
                 results[entry.address] = result
@@ -653,12 +651,12 @@ dumpmem(Wrapper2(42, (43, 44)))
 protocol TreeProto {
     var description: String {get}
 }
- 
+
 enum Tree: TreeProto {
     case Empty
     case Leaf(String)
     case Node(TreeProto, TreeProto)
- 
+
     var description: String {
         switch self {
         case Empty: return "<empty>"
@@ -667,7 +665,7 @@ enum Tree: TreeProto {
         }
     }
 }
- 
+
 let empty = Tree.Empty
 dumpmem(empty)
 
@@ -698,4 +696,3 @@ dumpmem(tallTree)
 // END: Recursive enum using intermediate protocol
 
 printer.end()
-
