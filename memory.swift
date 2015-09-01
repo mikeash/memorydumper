@@ -4,7 +4,7 @@ source="$0"
 compiled="$0"c
 
 if [[ "$source" -nt "$compiled" ]]; then
-DEVELOPER_DIR=/Applications/Xcode6-Beta.app/Contents/Developer xcrun swiftc -sdk /Applications/Xcode6-Beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.10.sdk -g "$source" -o "$compiled"  || exit
+xcrun -sdk macosx swiftc -g "$source" -o "$compiled"  || exit
 fi
 
 "$compiled"
@@ -46,12 +46,12 @@ class TermPrinter: Printer {
     ]
 
     func printEscape(color: PrintColor) {
-        Swift.print("\u{1B}[\(colorCodes[color]!)m")
+        Swift.print("\u{1B}[\(colorCodes[color]!)m", terminator: "")
     }
     
     func print(color: PrintColor, _ str: String) {
         printEscape(color)
-        Swift.print(str)
+        Swift.print(str, terminator: "")
         printEscape(.Default)
     }
     
@@ -60,7 +60,7 @@ class TermPrinter: Printer {
     }
     
     func println() {
-        Swift.println()
+        Swift.print()
     }
     
     func end() {}
@@ -80,7 +80,7 @@ class HTMLPrinter: Printer {
     var didEnd = false
     
     init() {
-        Swift.println("<div style=\"font-family: monospace\">")
+        Swift.print("<div style=\"font-family: monospace\">", terminator: "")
     }
     
     deinit {
@@ -89,8 +89,8 @@ class HTMLPrinter: Printer {
     
     func escape(str: String) -> String {
         let mutable = NSMutableString(string: str)
-        func replace(str: String, with: String) {
-            mutable.replaceOccurrencesOfString(str, withString: with, options: NSStringCompareOptions(0), range: NSRange(location: 0, length: mutable.length))
+        func replace(str: String, _ with: String) {
+            mutable.replaceOccurrencesOfString(str, withString: with, options: [], range: NSRange(location: 0, length: mutable.length))
         }
         
         replace("&", "&amp;")
@@ -102,9 +102,9 @@ class HTMLPrinter: Printer {
     }
     
     func print(color: PrintColor, _ str: String) {
-        Swift.print("<span style=\"color: \(colorNames[color]!)\">")
-        Swift.print(escape(str))
-        Swift.print("</span>")
+        Swift.print("<span style=\"color: \(colorNames[color]!)\">", terminator: "")
+        Swift.print(escape(str), terminator: "")
+        Swift.print("</span>", terminator: "")
     }
     
     func print(str: String) {
@@ -112,16 +112,16 @@ class HTMLPrinter: Printer {
     }
     
     func println() {
-        Swift.println("<br>")
+        Swift.print("<br>")
     }
     
     func end() {
-        Swift.println("</div>")
+        Swift.print("</div>")
         didEnd = true
     }
 }
 
-struct Pointer: Hashable, Printable {
+struct Pointer: Hashable, CustomStringConvertible {
     let address: UInt
     
     var hashValue: Int {
@@ -183,15 +183,17 @@ struct Memory {
     let isMalloc: Bool
     let isSymbol: Bool
     
-    static func readIntoArray(ptr: Pointer, var _ buffer: [UInt8]) -> Bool {
-        let result = buffer.withUnsafeBufferPointer {
-            (targetPtr: UnsafeBufferPointer<UInt8>) -> kern_return_t in
+    static func readIntoArray(ptr: Pointer, inout _ buffer: [UInt8]) -> Bool {
+        let bufferCount = buffer.count
+        let result = buffer.withUnsafeMutableBufferPointer {
+            (inout targetPtr: UnsafeMutableBufferPointer<UInt8>) -> kern_return_t in
             
             let ptr64 = UInt64(ptr.address)
             let target: UInt = unsafeBitCast(targetPtr.baseAddress, UInt.self)
             let target64 = UInt64(target)
             var outsize: mach_vm_size_t = 0
-            return mach_vm_read_overwrite(mach_task_self_, ptr64, mach_vm_size_t(buffer.count), target64, &outsize)
+            let result = mach_vm_read_overwrite(mach_task_self_, ptr64, mach_vm_size_t(bufferCount), target64, &outsize)
+            return result
         }
         return result == KERN_SUCCESS
     }
@@ -212,11 +214,11 @@ struct Memory {
             var result = [UInt8]()
             while (result.count < 128) {
                 var eightBytes = [UInt8](count: 8, repeatedValue: 0)
-                let success = readIntoArray(ptr + result.count, eightBytes)
+                let success = readIntoArray(ptr + result.count, &eightBytes)
                 if !success {
                     break
                 }
-                result.extend(eightBytes)
+                result.appendContentsOf(eightBytes)
             }
             return (result.count > 0
                 ? Memory(buffer: result, isMalloc: false, isSymbol: isSymbol)
@@ -227,7 +229,7 @@ struct Memory {
             }
             
             var result = [UInt8](count: length, repeatedValue: 0)
-            let success = readIntoArray(ptr, result)
+            let success = readIntoArray(ptr, &result)
             return (success
                 ? Memory(buffer: result, isMalloc: isMalloc, isSymbol: isSymbol)
                 : nil)
@@ -275,7 +277,7 @@ struct Memory {
     func hex() -> String {
         let spacesInterval = 8
         let str = NSMutableString(capacity: buffer.count * 2)
-        for (index, byte) in enumerate(buffer) {
+        for (index, byte) in buffer.enumerate() {
             if index > 0 && (index % spacesInterval) == 0 {
                 str.appendString(" ")
             }
@@ -295,16 +297,16 @@ enum Alignment {
     case Left
 }
 
-func pad(value: Any, minWidth: Int, padChar: String = " ", align: Alignment = .Right) -> String {
-    var str = "\(value)"
+func pad(value: Any, _ minWidth: Int, padChar: String = " ", align: Alignment = .Right) -> String {
+    let str = "\(value)"
     var accumulator = ""
     
     if align == .Left {
         accumulator += str
     }
     
-    if minWidth > count(str) {
-        for i in 0..<(minWidth - count(str)) {
+    if minWidth > str.characters.count {
+        for _ in 0..<(minWidth - str.characters.count) {
             accumulator += padChar
         }
     }
@@ -316,13 +318,13 @@ func pad(value: Any, minWidth: Int, padChar: String = " ", align: Alignment = .R
     return accumulator
 }
 
-func limit(str: String, maxLength: Int, continuation: String = "...") -> String {
-    if count(str) <= maxLength {
+func limit(str: String, _ maxLength: Int, continuation: String = "...") -> String {
+    if str.characters.count <= maxLength {
         return str
     }
     
     let start = str.startIndex
-    let truncationPoint = advance(start, maxLength)
+    let truncationPoint = start.advancedBy(maxLength)
     return str[start..<truncationPoint] + continuation
 }
 
@@ -383,8 +385,8 @@ struct ObjCClass {
         
         p.print("Objective-C class \(name)")
         
-        if class_getName(classPtr) == "NSObject" {
-            println()
+        if strcmp(class_getName(classPtr), "NSObject") == 0 {
+            p.println()
         } else {
             p.print(":")
             p.println()
@@ -480,7 +482,7 @@ class ScanResult {
         let strings = memory.scanStrings()
         if strings.count > 0 {
             p.print(" -- strings: (")
-            p.print(", ".join(strings))
+            p.print(strings.joinWithSeparator(", "))
             p.print(")")
         }
         p.println()
@@ -501,7 +503,7 @@ class ScanResult {
                 result.color = nextColor()
             }
             
-            for i in 0..<result.indent {
+            for _ in 0..<result.indent {
                 p.print("  ")
             }
             result.dump(p)
@@ -559,8 +561,8 @@ func scanmem<T>(var x: T, limit: Int) -> ScanResult {
 let printer = TermPrinter()
 
 func dumpmem<T>(x: T) {
-    println("Dumping \(x)")
-    scanmem(x, 32).recursiveDump(printer)
+    print("Dumping \(x)")
+    scanmem(x, limit: 32).recursiveDump(printer)
 }
 
 
