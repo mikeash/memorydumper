@@ -382,6 +382,9 @@ struct ObjCClass {
                 free(pointer)
             }
         }
+        func str(ptr: UnsafePointer<Int8>) -> String {
+            return String.fromCString(ptr)!
+        }
         
         p.print("Objective-C class \(name)")
         
@@ -391,15 +394,15 @@ struct ObjCClass {
             p.print(":")
             p.println()
             iterate(class_copyIvarList(classPtr, nil)) {
-                p.print("    Ivar: \(ivar_getName($0)) \(ivar_getTypeEncoding($0))")
+                p.print("    Ivar: \(str(ivar_getName($0))) \(str(ivar_getTypeEncoding($0)))")
                 p.println()
             }
             iterate(class_copyPropertyList(classPtr, nil)) {
-                p.print("    Property: \(property_getName($0)) \(property_getAttributes($0))")
+                p.print("    Property: \(str(property_getName($0))) \(str(property_getAttributes($0)))")
                 p.println()
             }
             iterate(class_copyMethodList(classPtr, nil)) {
-                p.print("    Method: \(sel_getName(method_getName($0))) \(method_getTypeEncoding($0))")
+                p.print("    Method: \(str(sel_getName(method_getName($0)))) \(str(method_getTypeEncoding($0)))")
                 p.println()
             }
         }
